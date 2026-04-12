@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KVern — Request Flow</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f4f0;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #6b6a64;
+    --color-border-tertiary: rgba(0,0,0,0.12);
+    --color-border-secondary: rgba(0,0,0,0.22);
+    --color-border-info: #185FA5;
+    --color-text-info: #185FA5;
+    --font-sans: system-ui, -apple-system, sans-serif;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-primary: #1c1c1a;
+      --color-background-secondary: #242422;
+      --color-text-primary: #e8e6dc;
+      --color-text-secondary: #9c9a92;
+      --color-border-tertiary: rgba(255,255,255,0.1);
+      --color-border-secondary: rgba(255,255,255,0.18);
+      --color-border-info: #378ADD;
+      --color-text-info: #378ADD;
+    }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 740px;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem 1.5rem 1.25rem;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    padding-bottom: 0.75rem;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  .card-sub {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+
+  .step-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-border-secondary);
+    transition: background .3s, transform .3s;
+    display: inline-block;
+  }
+  .step-dot.active { background: var(--color-text-info); transform: scale(1.3); }
+  .step-dot.done   { background: var(--color-border-info); opacity: 0.5; }
+
+  .conn-line { stroke: var(--color-border-secondary); stroke-width: 1.2; fill: none; transition: stroke .25s, stroke-width .25s; }
+  .conn-line.hot { stroke: #185FA5; stroke-width: 2; }
+  @media (prefers-color-scheme: dark) { .conn-line.hot { stroke: #378ADD; } }
+
+  .path-label { font-size: 11px; fill: var(--color-text-secondary); font-family: var(--font-sans); }
+
+  #step-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; min-height: 24px; }
+  #step-desc  { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.2rem; min-height: 52px; line-height: 1.65; }
+
+  button {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: transparent;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: background .15s;
+  }
+  button:hover { background: var(--color-background-secondary); }
+  button:disabled { opacity: 0.35; cursor: default; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="card-header">
+    <span class="card-title">KVern — Request Flow</span>
+    <span class="card-sub">step-by-step walkthrough</span>
+  </div>
+
+  <div id="step-title"></div>
+  <div id="step-desc"></div>
+
+  <svg width="100%" viewBox="0 0 680 310" role="img">
+    <title>KVern system diagram</title>
+    <desc>Five components — Client, Proxy, Tokenizer, Prefix Trie, Analytics Store, Eviction Engine, and Backend — connected by labeled arrows showing the flow of a single inference request through KVern.</desc>
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </marker>
+    </defs>
+
+    <!-- Connectors -->
+    <line id="c-cp"  x1="80"  y1="80"  x2="155" y2="80"  class="conn-line" marker-end="url(#arrow)"/>
+    <line id="c-pt"  x1="245" y1="68"  x2="320" y2="50"  class="conn-line" marker-end="url(#arrow)"/>
+    <line id="c-tt"  x1="420" y1="50"  x2="480" y2="68"  class="conn-line" marker-end="url(#arrow)"/>
+    <line id="c-ta"  x1="530" y1="100" x2="530" y2="155" class="conn-line" marker-end="url(#arrow)"/>
+    <path id="c-pb"  d="M200 100 L200 210 L430 210"       class="conn-line" marker-end="url(#arrow)"/>
+    <path id="c-bp"  d="M430 230 L180 230 L180 100"       class="conn-line" marker-end="url(#arrow)"/>
+    <line id="c-pcc" x1="155" y1="90"  x2="80"  y2="90"  class="conn-line" marker-end="url(#arrow)"/>
+    <line id="c-te2" x1="460" y1="180" x2="285" y2="265" class="conn-line" marker-end="url(#arrow)"/>
+
+    <!-- Connector labels -->
+    <text class="path-label" x="104" y="74">request</text>
+    <text class="path-label" x="260" y="46">messages[]</text>
+    <text class="path-label" x="421" y="46">token_ids</text>
+    <text class="path-label" x="537" y="132">record</text>
+    <text class="path-label" x="210" y="222">forwarded req</text>
+    <text class="path-label" x="210" y="244">response</text>
+    <text class="path-label" x="84"  y="104">response</text>
+    <text class="path-label" x="335" y="245">eviction candidates</text>
+
+    <!-- CLIENT -->
+    <g id="box-client">
+      <rect x="10" y="58" width="70" height="44" rx="8" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <text x="45" y="84" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)" font-family="var(--font-sans)">Client</text>
+    </g>
+
+    <!-- PROXY -->
+    <g id="box-proxy">
+      <rect x="155" y="56" width="90" height="48" rx="8" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <text x="200" y="76" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)" font-family="var(--font-sans)">Proxy</text>
+      <text x="200" y="92" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)" font-family="var(--font-sans)">FastAPI</text>
+    </g>
+
+    <!-- TOKENIZER -->
+    <g id="box-tok">
+      <rect x="320" y="24" width="100" height="48" rx="8" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <text x="370" y="44" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)" font-family="var(--font-sans)">Tokenizer</text>
+      <text x="370" y="60" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)" font-family="var(--font-sans)">chat template</text>
+    </g>
+
+    <!-- TRIE -->
+    <g id="box-trie">
+      <rect x="460" y="56" width="100" height="48" rx="8" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <text x="510" y="76" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)" font-family="var(--font-sans)">Prefix Trie</text>
+      <text x="510" y="92" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)" font-family="var(--font-sans)">token-level</text>
+    </g>
+
+    <!-- ANALYTICS -->
+    <g id="box-analytics">
+      <rect x="460" y="155" width="120" height="48" rx="8" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <text x="520" y="175" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)" font-family="var(--font-sans)">Analytics</text>
+      <text x="520" y="191" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)" font-family="var(--font-sans)">SQLite store</text>
+    </g>
+
+    <!-- BACKEND -->
+    <g id="box-backend">
+      <rect x="430" y="195" width="120" height="48" rx="8" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <text x="490" y="215" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)" font-family="var(--font-sans)">Backend</text>
+      <text x="490" y="231" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)" font-family="var(--font-sans)">vLLM / Ollama</text>
+    </g>
+
+    <!-- EVICTION -->
+    <g id="box-eviction">
+      <rect x="155" y="255" width="130" height="44" rx="8" fill="var(--color-background-secondary)" stroke="var(--color-border-tertiary)" stroke-width="0.5"/>
+      <text x="220" y="275" text-anchor="middle" font-size="13" font-weight="500" fill="var(--color-text-primary)" font-family="var(--font-sans)">Eviction Engine</text>
+      <text x="220" y="291" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)" font-family="var(--font-sans)">cost-aware policy</text>
+    </g>
+
+    <!-- Highlight overlays -->
+    <rect id="hl-client"    x="8"   y="54"  width="74"  height="52" rx="10" fill="none" stroke="var(--color-border-info)" stroke-width="2" opacity="0"/>
+    <rect id="hl-proxy"     x="153" y="54"  width="94"  height="52" rx="10" fill="none" stroke="var(--color-border-info)" stroke-width="2" opacity="0"/>
+    <rect id="hl-tok"       x="318" y="22"  width="104" height="52" rx="10" fill="none" stroke="var(--color-border-info)" stroke-width="2" opacity="0"/>
+    <rect id="hl-trie"      x="458" y="54"  width="104" height="52" rx="10" fill="none" stroke="var(--color-border-info)" stroke-width="2" opacity="0"/>
+    <rect id="hl-analytics" x="458" y="153" width="124" height="52" rx="10" fill="none" stroke="var(--color-border-info)" stroke-width="2" opacity="0"/>
+    <rect id="hl-backend"   x="428" y="193" width="124" height="52" rx="10" fill="none" stroke="var(--color-border-info)" stroke-width="2" opacity="0"/>
+    <rect id="hl-eviction"  x="153" y="253" width="134" height="48" rx="10" fill="none" stroke="var(--color-border-info)" stroke-width="2" opacity="0"/>
+  </svg>
+
+  <!-- Step dots -->
+  <div style="display:flex;justify-content:center;gap:10px;margin:0.75rem 0 1rem;" id="dots-row"></div>
+
+  <!-- Nav -->
+  <div style="display:flex;gap:10px;">
+    <button id="btn-prev" onclick="changeStep(-1)">← Previous</button>
+    <button id="btn-next" onclick="changeStep(1)">Next →</button>
+  </div>
+
+</div>
+
+<script>
+const steps = [
+  {
+    title: "Step 1 — Client sends a request",
+    desc: "A client (your app, a script, anything) sends a POST /v1/chat/completions to KVern's proxy — identical to how you'd talk to OpenAI or Ollama directly. No API changes. KVern is a transparent drop-in.",
+    highlights: ["hl-client","hl-proxy"],
+    hotLines: ["c-cp"]
+  },
+  {
+    title: "Step 2 — Proxy extracts and tokenizes the prompt",
+    desc: "The proxy pulls the model name and the messages[] array. It passes these to the Tokenizer, which applies the model's chat template (Jinja2) to serialize the conversation into a flat token ID sequence — exactly what the model sees internally.",
+    highlights: ["hl-proxy","hl-tok"],
+    hotLines: ["c-pt"]
+  },
+  {
+    title: "Step 3 — Prefix Trie lookup and insert",
+    desc: "The token IDs walk the trie from the root. KVern finds the longest prefix this request shares with any prior request. A 2000-token system prompt seen 500 times before? That's a deep trie hit. New tokens extend the trie for future matches.",
+    highlights: ["hl-trie"],
+    hotLines: ["c-tt"]
+  },
+  {
+    title: "Step 4 — Analytics recorded (off the critical path)",
+    desc: "Hit/miss, shared prefix depth, model, timestamp — all written to SQLite asynchronously. This happens concurrently with the backend forward, so it adds zero latency to the user's request. The proxy doesn't wait for this.",
+    highlights: ["hl-analytics"],
+    hotLines: ["c-ta"]
+  },
+  {
+    title: "Step 5 — Request forwarded to backend",
+    desc: "The original request is forwarded unchanged to vLLM or Ollama. KVern never modifies it. If KVern crashes, the request still reaches the backend — it fails open. The model generates a fresh response (Phase 2 is where KVern will actually skip prefix recomputation).",
+    highlights: ["hl-backend"],
+    hotLines: ["c-pb"]
+  },
+  {
+    title: "Step 6 — Response streamed back to client",
+    desc: "The backend response (streaming or complete) passes through the proxy back to the client, unmodified. Post-response, backend latency is recorded to the analytics store to compute end-to-end savings.",
+    highlights: ["hl-client","hl-proxy"],
+    hotLines: ["c-bp","c-pcc"]
+  },
+  {
+    title: "Step 7 — Eviction engine runs in background",
+    desc: "Periodically, the eviction engine scores every trie node using the configured policy (LRU, LFU-decay, or cost-aware). It produces an ordered eviction list. In Phase 1 this is pure logic — no GPU blocks are touched yet. In Phase 2 it drives actual vLLM block eviction.",
+    highlights: ["hl-eviction","hl-trie","hl-analytics"],
+    hotLines: ["c-te2"]
+  }
+];
+
+let current = 0;
+const allHighlights = ["hl-client","hl-proxy","hl-tok","hl-trie","hl-analytics","hl-backend","hl-eviction"];
+const allLines = ["c-cp","c-pt","c-tt","c-ta","c-pb","c-bp","c-pcc","c-te2"];
+const dotsRow = document.getElementById('dots-row');
+
+steps.forEach((_,i) => {
+  const d = document.createElement('div');
+  d.className = 'step-dot';
+  d.id = 'dot-'+i;
+  dotsRow.appendChild(d);
+});
+
+function render(idx) {
+  const s = steps[idx];
+  document.getElementById('step-title').textContent = s.title;
+  document.getElementById('step-desc').textContent = s.desc;
+
+  allHighlights.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('opacity', s.highlights.includes(id) ? '1' : '0');
+  });
+  allLines.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (s.hotLines.includes(id)) el.classList.add('hot');
+      else el.classList.remove('hot');
+    }
+  });
+
+  steps.forEach((_,i) => {
+    const d = document.getElementById('dot-'+i);
+    d.className = 'step-dot' + (i === idx ? ' active' : (i < idx ? ' done' : ''));
+  });
+
+  document.getElementById('btn-prev').disabled = idx === 0;
+  document.getElementById('btn-next').textContent = idx === steps.length - 1 ? 'Restart ↺' : 'Next →';
+}
+
+function changeStep(dir) {
+  current = (current + dir + steps.length) % steps.length;
+  render(current);
+}
+
+render(0);
+</script>
+</body>
+</html>
