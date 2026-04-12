@@ -12,6 +12,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-text">KVern</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#hero">Home</a></li>
+                <li><a href="#problem">Problem</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#metrics">Metrics</a></li>
+            </ul>
+            <div class="nav-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
     <!-- Hero Section -->
     <section id="hero" class="hero-section">
         <div class="container">
@@ -265,8 +286,350 @@
         </div>
     </section>
 
-    <script src="scripts/main.js"></script>
+    <!-- Section 3: How It Works -->
+    <section id="how-it-works" class="how-it-works-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-subtitle">Three core innovations that make intelligent caching possible</p>
+            </div>
+
+            <div class="features-grid">
+                <!-- Feature 1: Token-Level Prefix Trie -->
+                <div class="feature-card" data-feature="trie">
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="m2 17 10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                            <path d="m2 12 10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Token-Level Prefix Trie</h3>
+                    <p class="feature-description">
+                        Advanced data structure that identifies overlapping token sequences across prompts, 
+                        enabling granular prefix detection and reuse.
+                    </p>
+                    <div class="feature-details">
+                        <div class="detail-item">
+                            <span class="detail-icon">⚡</span>
+                            <span class="detail-text">O(log n) lookup time</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">🔍</span>
+                            <span class="detail-text">Sub-token precision</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">🧠</span>
+                            <span class="detail-text">Memory-efficient storage</span>
+                        </div>
+                    </div>
+                    <div class="feature-preview">
+                        <div class="preview-code">
+                            <span class="code-comment"># Token sequence matching</span><br>
+                            <span class="code-keyword">prefix_match</span> = trie.find_longest_prefix(tokens)<br>
+                            <span class="code-comment"># Returns: 847 tokens cached</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 2: Transparent Proxy -->
+                <div class="feature-card" data-feature="proxy">
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Transparent Proxy</h3>
+                    <p class="feature-description">
+                        Drop-in replacement that intercepts API calls, analyzes prompts in real-time, 
+                        and serves cached responses without changing your existing code.
+                    </p>
+                    <div class="feature-details">
+                        <div class="detail-item">
+                            <span class="detail-icon">🔄</span>
+                            <span class="detail-text">Zero code changes</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">⚡</span>
+                            <span class="detail-text">Real-time analysis</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">🛡️</span>
+                            <span class="detail-text">Fallback protection</span>
+                        </div>
+                    </div>
+                    <div class="feature-preview">
+                        <div class="preview-code">
+                            <span class="code-comment"># Your existing code works unchanged</span><br>
+                            <span class="code-keyword">response</span> = openai.chat.completions.create(<br>
+                            &nbsp;&nbsp;model="gpt-4", messages=messages<br>
+                            )
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 3: Cost-Aware Eviction -->
+                <div class="feature-card" data-feature="eviction">
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Cost-Aware Eviction</h3>
+                    <p class="feature-description">
+                        Intelligent cache management that considers token costs, access patterns, 
+                        and prompt complexity to maximize savings.
+                    </p>
+                    <div class="feature-details">
+                        <div class="detail-item">
+                            <span class="detail-icon">💰</span>
+                            <span class="detail-text">Cost optimization</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">📊</span>
+                            <span class="detail-text">Usage analytics</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">🎯</span>
+                            <span class="detail-text">Smart prioritization</span>
+                        </div>
+                    </div>
+                    <div class="feature-preview">
+                        <div class="preview-code">
+                            <span class="code-comment"># Automatic cost-based decisions</span><br>
+                            <span class="code-keyword">priority</span> = calculate_eviction_priority(<br>
+                            &nbsp;&nbsp;frequency, cost_saved, recency<br>
+                            )
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Demo -->
+            <div class="demo-container">
+                <div class="demo-header">
+                    <h3>See It In Action</h3>
+                    <p>Watch how KVern processes your prompts in real-time</p>
+                </div>
+                <div class="demo-controls">
+                    <button class="demo-btn active" data-demo="basic">Basic Prompt</button>
+                    <button class="demo-btn" data-demo="complex">Complex Chain</button>
+                    <button class="demo-btn" data-demo="repeated">Repeated Pattern</button>
+                </div>
+                <div class="demo-output">
+                    <div class="demo-steps">
+                        <div class="demo-step active" data-step="1">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h4>Request Analysis</h4>
+                                <p>KVern tokenizes and analyzes your prompt for cached prefixes</p>
+                            </div>
+                        </div>
+                        <div class="demo-step" data-step="2">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h4>Cache Lookup</h4>
+                                <p>Searches the trie for longest matching prefix sequences</p>
+                            </div>
+                        </div>
+                        <div class="demo-step" data-step="3">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h4>Smart Response</h4>
+                                <p>Returns cached tokens or forwards request to API</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Architecture -->
+    <section id="architecture" class="architecture-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">System Architecture</h2>
+                <p class="section-subtitle">Interactive walkthrough of how requests flow through KVern</p>
+            </div>
+
+            <div class="architecture-container">
+                <!-- Step Info -->
+                <div class="step-info">
+                    <h3 id="arch-step-title">Step 1 — Client sends a request</h3>
+                    <p id="arch-step-desc">A client sends a POST /v1/chat/completions to KVern's proxy — identical to how you'd talk to OpenAI directly. No API changes. KVern is a transparent drop-in.</p>
+                </div>
+
+                <!-- Architecture Diagram -->
+                <div class="arch-diagram">
+                    <svg width="100%" viewBox="0 0 700 320" role="img">
+                        <title>KVern system architecture</title>
+                        <defs>
+                            <marker id="arch-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M2 1L8 5L2 9" fill="none" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </marker>
+                            <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#22C55E;stop-opacity:0.1" />
+                                <stop offset="100%" style="stop-color:#A855F7;stop-opacity:0.1" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Connection Lines -->
+                        <line id="conn-cp" x1="90" y1="80" x2="165" y2="80" class="arch-line" marker-end="url(#arch-arrow)"/>
+                        <line id="conn-pt" x1="255" y1="68" x2="330" y2="50" class="arch-line" marker-end="url(#arch-arrow)"/>
+                        <line id="conn-tt" x1="430" y1="50" x2="490" y2="68" class="arch-line" marker-end="url(#arch-arrow)"/>
+                        <line id="conn-ta" x1="540" y1="100" x2="540" y2="155" class="arch-line" marker-end="url(#arch-arrow)"/>
+                        <path id="conn-pb" d="M210 100 L210 220 L440 220" class="arch-line" marker-end="url(#arch-arrow)"/>
+                        <path id="conn-bp" d="M440 240 L190 240 L190 100" class="arch-line" marker-end="url(#arch-arrow)"/>
+                        <line id="conn-pcc" x1="165" y1="90" x2="90" y2="90" class="arch-line" marker-end="url(#arch-arrow)"/>
+                        <line id="conn-te2" x1="470" y1="190" x2="295" y2="275" class="arch-line" marker-end="url(#arch-arrow)"/>
+
+                        <!-- Connection Labels -->
+                        <text class="arch-label" x="114" y="74">request</text>
+                        <text class="arch-label" x="270" y="46">messages[]</text>
+                        <text class="arch-label" x="431" y="46">token_ids</text>
+                        <text class="arch-label" x="547" y="132">record</text>
+                        <text class="arch-label" x="220" y="232">forwarded req</text>
+                        <text class="arch-label" x="220" y="254">response</text>
+                        <text class="arch-label" x="94" y="104">response</text>
+                        <text class="arch-label" x="345" y="255">eviction candidates</text>
+
+                        <!-- Component Nodes -->
+                        <g id="node-client" class="arch-node">
+                            <rect x="20" y="58" width="70" height="44" rx="8" fill="url(#nodeGradient)" stroke="#334155" stroke-width="1"/>
+                            <text x="55" y="84" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Client</text>
+                        </g>
+
+                        <g id="node-proxy" class="arch-node">
+                            <rect x="165" y="56" width="90" height="48" rx="8" fill="url(#nodeGradient)" stroke="#334155" stroke-width="1"/>
+                            <text x="210" y="76" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Proxy</text>
+                            <text x="210" y="92" text-anchor="middle" font-size="11" fill="#94A3B8">FastAPI</text>
+                        </g>
+
+                        <g id="node-tokenizer" class="arch-node">
+                            <rect x="330" y="24" width="100" height="48" rx="8" fill="url(#nodeGradient)" stroke="#334155" stroke-width="1"/>
+                            <text x="380" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Tokenizer</text>
+                            <text x="380" y="60" text-anchor="middle" font-size="11" fill="#94A3B8">chat template</text>
+                        </g>
+
+                        <g id="node-trie" class="arch-node">
+                            <rect x="470" y="56" width="100" height="48" rx="8" fill="url(#nodeGradient)" stroke="#334155" stroke-width="1"/>
+                            <text x="520" y="76" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Prefix Trie</text>
+                            <text x="520" y="92" text-anchor="middle" font-size="11" fill="#94A3B8">token-level</text>
+                        </g>
+
+                        <g id="node-analytics" class="arch-node">
+                            <rect x="470" y="155" width="120" height="48" rx="8" fill="url(#nodeGradient)" stroke="#334155" stroke-width="1"/>
+                            <text x="530" y="175" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Analytics</text>
+                            <text x="530" y="191" text-anchor="middle" font-size="11" fill="#94A3B8">SQLite store</text>
+                        </g>
+
+                        <g id="node-backend" class="arch-node">
+                            <rect x="440" y="205" width="120" height="48" rx="8" fill="url(#nodeGradient)" stroke="#334155" stroke-width="1"/>
+                            <text x="500" y="225" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Backend</text>
+                            <text x="500" y="241" text-anchor="middle" font-size="11" fill="#94A3B8">vLLM / Ollama</text>
+                        </g>
+
+                        <g id="node-eviction" class="arch-node">
+                            <rect x="165" y="265" width="130" height="44" rx="8" fill="url(#nodeGradient)" stroke="#334155" stroke-width="1"/>
+                            <text x="230" y="285" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Eviction Engine</text>
+                            <text x="230" y="301" text-anchor="middle" font-size="11" fill="#94A3B8">cost-aware policy</text>
+                        </g>
+
+                        <!-- Highlight Overlays -->
+                        <rect id="hl-client" x="18" y="56" width="74" height="48" rx="10" fill="none" stroke="#22C55E" stroke-width="3" opacity="0"/>
+                        <rect id="hl-proxy" x="163" y="54" width="94" height="52" rx="10" fill="none" stroke="#22C55E" stroke-width="3" opacity="0"/>
+                        <rect id="hl-tokenizer" x="328" y="22" width="104" height="52" rx="10" fill="none" stroke="#22C55E" stroke-width="3" opacity="0"/>
+                        <rect id="hl-trie" x="468" y="54" width="104" height="52" rx="10" fill="none" stroke="#22C55E" stroke-width="3" opacity="0"/>
+                        <rect id="hl-analytics" x="468" y="153" width="124" height="52" rx="10" fill="none" stroke="#22C55E" stroke-width="3" opacity="0"/>
+                        <rect id="hl-backend" x="438" y="203" width="124" height="52" rx="10" fill="none" stroke="#22C55E" stroke-width="3" opacity="0"/>
+                        <rect id="hl-eviction" x="163" y="263" width="134" height="48" rx="10" fill="none" stroke="#22C55E" stroke-width="3" opacity="0"/>
+                    </svg>
+                </div>
+
+                <!-- Step Navigation -->
+                <div class="step-navigation">
+                    <div class="step-dots">
+                        <div class="step-dot active" data-step="0"></div>
+                        <div class="step-dot" data-step="1"></div>
+                        <div class="step-dot" data-step="2"></div>
+                        <div class="step-dot" data-step="3"></div>
+                        <div class="step-dot" data-step="4"></div>
+                        <div class="step-dot" data-step="5"></div>
+                        <div class="step-dot" data-step="6"></div>
+                    </div>
+                    <div class="step-controls">
+                        <button id="arch-prev" class="step-btn">← Previous</button>
+                        <button id="arch-next" class="step-btn">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="scripts/main.js"></script></script>
     <script src="scripts/animations.js"></script>
+    
+    <!-- Debug Script -->
+    <script>
+        console.log('🐛 Debug script loaded');
+        
+        // Test if demo buttons exist and work
+        window.addEventListener('load', function() {
+            console.log('🌐 Page loaded');
+            
+            setTimeout(function() {
+                const demoBtns = document.querySelectorAll('.demo-btn');
+                console.log('🔍 Found demo buttons:', demoBtns.length);
+                
+                demoBtns.forEach((btn, index) => {
+                    console.log(`Button ${index}:`, btn.getAttribute('data-demo'), btn.textContent.trim());
+                    
+                    // Add event listener manually for testing
+                    btn.addEventListener('click', function() {
+                        console.log('🖱️ MANUAL: Button clicked:', btn.getAttribute('data-demo'));
+                        
+                        // Manual demo logic
+                        demoBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        
+                        const steps = document.querySelectorAll('.demo-step');
+                        console.log('📋 Steps found:', steps.length);
+                        
+                        if (steps.length >= 3) {
+                            steps.forEach(step => step.classList.remove('active'));
+                            
+                            const demoType = btn.getAttribute('data-demo');
+                            let scenarios = {
+                                'basic': ['Simple prompt analysis', 'Basic cache lookup', 'Fast response'],
+                                'complex': ['Multi-step reasoning', '80% prefix match found', '1,247 tokens saved'],
+                                'repeated': ['Pattern detected', '95% match found', '2,100 tokens cached']
+                            };
+                            
+                            if (scenarios[demoType]) {
+                                steps.forEach((step, i) => {
+                                    setTimeout(() => {
+                                        step.classList.add('active');
+                                        const desc = step.querySelector('p');
+                                        if (desc && scenarios[demoType][i]) {
+                                            desc.textContent = scenarios[demoType][i];
+                                        }
+                                    }, i * 600);
+                                });
+                            }
+                        }
+                    });
+                });
+                
+                // Test click the first button
+                if (demoBtns.length > 0) {
+                    console.log('🎯 Testing first button click');
+                    demoBtns[0].click();
+                }
+            }, 1000);
+        });
+    </script>
     
     <script>
         // Immediate feedback
