@@ -38,22 +38,226 @@
             </div>
             
             <div class="hero-visual">
-                <div class="trie-animation">
-                    <div class="token-flow">
-                        <div class="token"></div>
-                        <div class="token"></div>
-                        <div class="token"></div>
+                <div class="trie-animation" id="trie-demo">
+                    <div class="animation-container">
+                        <!-- Token Flow Path -->
+                        <div class="token-flow-path">
+                            <div class="token token-1"></div>
+                            <div class="token token-2"></div>
+                            <div class="token token-3"></div>
+                        </div>
+                        
+                        <!-- Trie Structure -->
+                        <div class="trie-structure">
+                            <div class="trie-node root-node" id="root">
+                                <div class="node-label">Root</div>
+                            </div>
+                            <div class="trie-node level-1 left" id="node1">
+                                <div class="node-label">System</div>
+                            </div>
+                            <div class="trie-node level-1 right" id="node2">
+                                <div class="node-label">User</div>
+                            </div>
+                            <div class="trie-node level-2 left hit-node" id="hitnode">
+                                <div class="node-label">Cached</div>
+                                <div class="hit-indicator">✓</div>
+                            </div>
+                            <div class="trie-node level-2 center" id="node4">
+                                <div class="node-label">New</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Connection Lines -->
+                        <svg class="connection-lines" width="100%" height="100%">
+                            <line x1="50%" y1="20%" x2="10%" y2="45%" stroke="#94A3B8" stroke-width="2"/>
+                            <line x1="50%" y1="20%" x2="90%" y2="45%" stroke="#94A3B8" stroke-width="2"/>
+                            <line x1="10%" y1="45%" x2="8%" y2="70%" stroke="#22C55E" stroke-width="3" class="hit-line"/>
+                            <line x1="10%" y1="45%" x2="50%" y2="70%" stroke="#94A3B8" stroke-width="2"/>
+                        </svg>
+                        
+                        <!-- Stats Display -->
+                        <div class="trie-stats">
+                            <div class="stat-item">
+                                <span class="stat-value" id="cache-hits">0%</span>
+                                <span class="stat-label">Hit Rate</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="tokens-saved">0</span>
+                                <span class="stat-label">Tokens Saved</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Debug Button -->
+                        <button id="test-animation" style="position: absolute; top: 10px; right: 10px; padding: 8px; background: #22C55E; color: white; border: none; border-radius: 4px; font-size: 12px; z-index: 10; cursor: pointer;">
+                            Test Random Path
+                        </button>
                     </div>
-                    <div class="trie-structure">
-                        <div class="trie-node root">
-                            <div class="trie-node child hit">
-                                <div class="trie-node child">
-                                    <div class="trie-node child"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Statement Section -->
+    <section id="problem" class="problem-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">
+                    Every Request is a <span class="accent-text">Blank Slate</span>
+                </h2>
+                <p class="section-subtitle">
+                    Your model re-calculates identical system prompts, identical RAG contexts, and identical chat histories 
+                    thousands of times daily. You're not just losing time—you're burning FLOPs on redundant computation.
+                </p>
+            </div>
+            
+            <div class="problem-visual">
+                <div class="comparison-container">
+                    <!-- Wasteful Flow -->
+                    <div class="flow-card wasteful">
+                        <h3 class="flow-title">
+                            <span class="flow-icon">🔥</span>
+                            Current: Wasteful
+                        </h3>
+                        
+                        <div class="request-flow">
+                            <div class="request-item">
+                                <div class="request-header">Request #1</div>
+                                <div class="prompt-parts">
+                                    <div class="prompt-part system">System: "You are a helpful assistant..."</div>
+                                    <div class="prompt-part user">User: "How do I deploy Docker?"</div>
+                                </div>
+                                <div class="computation">
+                                    <span class="compute-cost">~1,200 FLOPs</span>
+                                    <span class="tokens">52 tokens processed</span>
                                 </div>
                             </div>
-                            <div class="trie-node child">
-                                <div class="trie-node child"></div>
+                            
+                            <div class="request-item">
+                                <div class="request-header">Request #2</div>
+                                <div class="prompt-parts">
+                                    <div class="prompt-part system duplicate">System: "You are a helpful assistant..." <span class="duplicate-tag">DUPLICATE</span></div>
+                                    <div class="prompt-part user">User: "What is Kubernetes?"</div>
+                                </div>
+                                <div class="computation">
+                                    <span class="compute-cost">~1,200 FLOPs</span>
+                                    <span class="tokens">49 tokens processed</span>
+                                </div>
                             </div>
+                            
+                            <div class="request-item">
+                                <div class="request-header">Request #3</div>
+                                <div class="prompt-parts">
+                                    <div class="prompt-part system duplicate">System: "You are a helpful assistant..." <span class="duplicate-tag">DUPLICATE</span></div>
+                                    <div class="prompt-part chat duplicate">Chat history: Previous conversation... <span class="duplicate-tag">DUPLICATE</span></div>
+                                    <div class="prompt-part user">User: "Continue the chat"</div>
+                                </div>
+                                <div class="computation">
+                                    <span class="compute-cost">~2,400 FLOPs</span>
+                                    <span class="tokens">94 tokens processed</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flow-summary wasteful">
+                            <div class="summary-stat">
+                                <span class="stat-number">4,800</span>
+                                <span class="stat-label">Total FLOPs</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-number">195</span>
+                                <span class="stat-label">Tokens Processed</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Optimized Flow -->
+                    <div class="flow-card optimized">
+                        <h3 class="flow-title">
+                            <span class="flow-icon">⚡</span>
+                            With KVern: Optimized
+                        </h3>
+                        
+                        <div class="request-flow">
+                            <div class="request-item">
+                                <div class="request-header">Request #1</div>
+                                <div class="prompt-parts">
+                                    <div class="prompt-part system">System: "You are a helpful assistant..."</div>
+                                    <div class="prompt-part user">User: "How do I deploy Docker?"</div>
+                                </div>
+                                <div class="computation">
+                                    <span class="compute-cost">~1,200 FLOPs</span>
+                                    <span class="tokens">52 tokens processed</span>
+                                </div>
+                            </div>
+                            
+                            <div class="request-item cached">
+                                <div class="request-header">Request #2</div>
+                                <div class="prompt-parts">
+                                    <div class="prompt-part system cached">System: "You are a helpful assistant..." <span class="cache-tag">CACHED ✓</span></div>
+                                    <div class="prompt-part user">User: "What is Kubernetes?"</div>
+                                </div>
+                                <div class="computation">
+                                    <span class="compute-cost">~600 FLOPs</span>
+                                    <span class="tokens">25 tokens processed</span>
+                                </div>
+                            </div>
+                            
+                            <div class="request-item cached">
+                                <div class="request-header">Request #3</div>
+                                <div class="prompt-parts">
+                                    <div class="prompt-part system cached">System: "You are a helpful assistant..." <span class="cache-tag">CACHED ✓</span></div>
+                                    <div class="prompt-part chat cached">Chat history: Previous conversation... <span class="cache-tag">CACHED ✓</span></div>
+                                    <div class="prompt-part user">User: "Continue the chat"</div>
+                                </div>
+                                <div class="computation">
+                                    <span class="compute-cost">~400 FLOPs</span>
+                                    <span class="tokens">18 tokens processed</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flow-summary optimized">
+                            <div class="summary-stat">
+                                <span class="stat-number">2,200</span>
+                                <span class="stat-label">Total FLOPs</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-number">95</span>
+                                <span class="stat-label">Tokens Processed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Savings Summary -->
+                <div class="savings-summary">
+                    <div class="savings-card">
+                        <div class="savings-stat">
+                            <span class="savings-number">54%</span>
+                            <span class="savings-label">Fewer FLOPs</span>
+                        </div>
+                        <div class="savings-description">
+                            By avoiding redundant computation of identical prefixes
+                        </div>
+                    </div>
+                    
+                    <div class="savings-card">
+                        <div class="savings-stat">
+                            <span class="savings-number">51%</span>
+                            <span class="savings-label">Fewer Tokens</span>
+                        </div>
+                        <div class="savings-description">
+                            Skip processing for shared system prompts and context
+                        </div>
+                    </div>
+                    
+                    <div class="savings-card">
+                        <div class="savings-stat">
+                            <span class="savings-number">$1,240</span>
+                            <span class="savings-label">Daily Savings</span>
+                        </div>
+                        <div class="savings-description">
+                            Based on 10K requests with typical enterprise workloads
                         </div>
                     </div>
                 </div>
@@ -63,5 +267,21 @@
 
     <script src="scripts/main.js"></script>
     <script src="scripts/animations.js"></script>
+    
+    <script>
+        // Immediate feedback
+        console.log('🎯 Scripts loaded');
+        setTimeout(() => {
+            const testBtn = document.getElementById('test-animation');
+            if (testBtn) {
+                testBtn.style.background = '#A855F7';
+                testBtn.textContent = 'JS Loaded ✓';
+                setTimeout(() => {
+                    testBtn.style.background = '#22C55E';
+                    testBtn.textContent = 'Test Animation';
+                }, 1000);
+            }
+        }, 100);
+    </script>
 </body>
 </html>

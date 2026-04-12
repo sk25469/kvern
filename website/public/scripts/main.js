@@ -1,14 +1,16 @@
 // ===== MAIN.JS - Core Functionality =====
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Main.js loaded and DOM ready');
     initializeApp();
 });
 
 function initializeApp() {
+    console.log('🔧 Initializing app...');
     setupClipboard();
     setupScrollReveal();
     setupNavigation();
-    console.log('KVern website initialized');
+    console.log('✅ KVern website initialized');
 }
 
 // ===== CLIPBOARD FUNCTIONALITY =====
@@ -16,52 +18,79 @@ function setupClipboard() {
     const cloneBtn = document.getElementById('clone-btn');
     
     if (cloneBtn) {
-        cloneBtn.addEventListener('click', function() {
-            const gitCommand = 'git clone https://github.com/[user]/kvern.git';
+        cloneBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
             
-            // Try to copy to clipboard
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(gitCommand).then(function() {
+            const gitCommand = 'git clone https://github.com/user/kvern.git';
+            
+            try {
+                // Modern browsers with clipboard API
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(gitCommand);
                     showCopySuccess(cloneBtn);
-                }).catch(function(err) {
-                    console.error('Failed to copy: ', err);
+                    console.log('Copied using Clipboard API');
+                } else {
+                    // Fallback for older browsers or non-HTTPS
                     fallbackCopy(gitCommand);
-                });
-            } else {
-                fallbackCopy(gitCommand);
+                    showCopySuccess(cloneBtn);
+                    console.log('Copied using fallback method');
+                }
+            } catch (error) {
+                console.error('Copy failed:', error);
+                // Show error message
+                showCopyError(cloneBtn);
             }
         });
     }
 }
 
 function showCopySuccess(button) {
-    const originalText = button.innerHTML;
-    button.innerHTML = '<span class=\"mono-text\">✓ Copied to clipboard!</span>';
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<span class="mono-text">✓ Copied to clipboard!</span>';
     button.classList.add('copied');
+    button.style.background = 'linear-gradient(135deg, #22C55E, #16a34a)';
     
     setTimeout(() => {
-        button.innerHTML = originalText;\n        button.classList.remove('copied');
+        button.innerHTML = originalHTML;
+        button.classList.remove('copied');
+        button.style.background = '';
+    }, 2500);
+}
+
+function showCopyError(button) {
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<span class="mono-text">✗ Copy failed</span>';
+    button.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+    
+    setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.style.background = '';
     }, 2000);
 }
 
 function fallbackCopy(text) {
+    // Create a temporary textarea element
     const textArea = document.createElement('textarea');
     textArea.value = text;
+    
+    // Style it to be invisible
     textArea.style.position = 'fixed';
     textArea.style.left = '-999999px';
     textArea.style.top = '-999999px';
+    textArea.style.opacity = '0';
+    
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
     
     try {
-        document.execCommand('copy');
-        console.log('Fallback copy successful');
-    } catch (err) {
-        console.error('Fallback copy failed: ', err);
+        const successful = document.execCommand('copy');
+        if (!successful) {
+            throw new Error('execCommand copy failed');
+        }
+    } finally {
+        document.body.removeChild(textArea);
     }
-    
-    document.body.removeChild(textArea);
 }
 
 // ===== SCROLL REVEAL ANIMATIONS =====

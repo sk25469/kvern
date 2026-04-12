@@ -173,6 +173,18 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 1;
 }
 
+/* Copy button states */
+.btn-primary.copied {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.6);
+}
+
+.btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* ===== HERO VISUAL ===== */
 .hero-visual {
     display: flex;
@@ -193,7 +205,37 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: center;
     overflow: hidden;
 }
+/* ===== PROBLEM STATEMENT SECTION ===== */
+.problem-section {
+    padding: var(--section-padding);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
+    border-top: 1px solid var(--border-gray);
+}
 
+.section-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.section-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.02em;
+}
+
+.section-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-gray);
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.problem-visual {
+    max-width: 1400px;
+    margin: 0 auto;
+}
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .hero-section .container {
@@ -208,12 +250,23 @@ h1, h2, h3, h4, h5, h6 {
     
     .trie-animation {
         width: 100%;
-        max-width: 350px;
-        height: 250px;
+        max-width: 380px;
+        height: 280px;
     }
     
     .container {
         padding: 0 1rem;
+    }
+    
+    .trie-node {
+        width: 50px;
+        height: 50px;
+        font-size: 0.65rem;
+    }
+    
+    .trie-node.root-node {
+        width: 60px;
+        height: 60px;
     }
 }
 
@@ -236,5 +289,21 @@ h1, h2, h3, h4, h5, h6 {
         width: 100%;
         max-width: 280px;
         justify-content: center;
+    }
+    
+    .trie-animation {
+        max-width: 320px;
+        height: 250px;
+    }
+    
+    .trie-node {
+        width: 40px;
+        height: 40px;
+        font-size: 0.6rem;
+    }
+    
+    .trie-node.root-node {
+        width: 50px;
+        height: 50px;
     }
 }

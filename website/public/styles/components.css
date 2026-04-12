@@ -15,60 +15,188 @@
     transform: translateY(-2px);
 }
 
-/* Trie Structure Visual */
-.trie-structure {
+/* ===== TRIE ANIMATION VISUAL ===== */
+.hero-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.trie-animation {
+    width: 450px;
+    height: 350px;
     position: relative;
-    width: 200px;
-    height: 150px;
+    border: 1px solid var(--border-gray);
+    border-radius: var(--border-radius);
+    background: var(--bg-glass);
+    backdrop-filter: var(--glass-blur);
+    overflow: hidden;
 }
 
-.trie-node {
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    background: var(--text-gray);
-    border-radius: 50%;
-    transition: var(--transition-smooth);
-}
-
-.trie-node.root {
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--accent-violet);
-    width: 20px;
-    height: 20px;
-}
-
-.trie-node.child {
-    width: 14px;
-    height: 14px;
-}
-
-.trie-node.hit {
-    background: var(--accent-green);
-    box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+.animation-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
 }
 
 /* Token Flow Animation */
-.token-flow {
+.token-flow-path {
     position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 120px;
+    top: 40%;
+    left: 10px;
+    width: 200px;
     height: 4px;
-    background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
-    opacity: 0;
+    z-index: 3;
 }
 
 .token {
     position: absolute;
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
     background: var(--accent-green);
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+    opacity: 0;
+    transform: translateX(0px);
+    top: -4px;
+}
+
+.token-1 { left: 0px; }
+.token-2 { left: 0px; }
+.token-3 { left: 0px; }
+
+/* Trie Nodes */
+.trie-structure {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.trie-node {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: rgba(148, 163, 184, 0.2);
+    border: 2px solid var(--text-gray);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-white);
+    transition: var(--transition-smooth);
+    z-index: 2;
+}
+
+.trie-node.root-node {
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(168, 85, 247, 0.3);
+    border-color: var(--accent-violet);
+    width: 70px;
+    height: 70px;
+}
+
+.trie-node.level-1.left {
+    top: 40%;
+    left: 3%;
+}
+
+.trie-node.level-1.right {
+    top: 40%;
+    right: 3%;
+}
+
+.trie-node.level-2.left {
+    top: 65%;
+    left: 0%;
+}
+
+.trie-node.level-2.center {
+    top: 65%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.trie-node.hit-node {
+    background: rgba(34, 197, 94, 0.3);
+    border-color: var(--accent-green);
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+}
+
+.node-label {
+    text-align: center;
+    font-size: 0.7rem;
+    line-height: 1;
+    font-weight: 600;
+}
+
+.hit-indicator {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s ease-out;
+    font-weight: bold;
+    color: white;
+    border: 2px solid white;
+}
+
+/* Connection Lines SVG */
+.connection-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.hit-line {
+    filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.6));
+}
+
+/* Stats Display */
+.trie-stats {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    z-index: 3;
+}
+
+.stat-item {
+    text-align: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.5rem;
+    border-radius: 6px;
+    backdrop-filter: blur(8px);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent-green);
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: var(--text-gray);
+    text-transform: uppercase;
 }
 
 /* Code Snippets */
