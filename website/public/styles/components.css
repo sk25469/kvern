@@ -1,0 +1,206 @@
+/* ===== COMPONENT STYLES ===== */
+
+/* Glassmorphism Cards */
+.glass-card {
+    background: var(--bg-glass);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-gray);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    transition: var(--transition-smooth);
+}
+
+.glass-card:hover {
+    border-color: var(--accent-violet);
+    transform: translateY(-2px);
+}
+
+/* Trie Structure Visual */
+.trie-structure {
+    position: relative;
+    width: 200px;
+    height: 150px;
+}
+
+.trie-node {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: var(--text-gray);
+    border-radius: 50%;
+    transition: var(--transition-smooth);
+}
+
+.trie-node.root {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent-violet);
+    width: 20px;
+    height: 20px;
+}
+
+.trie-node.child {
+    width: 14px;
+    height: 14px;
+}
+
+.trie-node.hit {
+    background: var(--accent-green);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+}
+
+/* Token Flow Animation */
+.token-flow {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 120px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+    opacity: 0;
+}
+
+.token {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+}
+
+/* Code Snippets */
+.code-snippet {
+    background: #0F0F23;
+    border: 1px solid var(--border-gray);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--text-gray);
+    overflow-x: auto;
+    position: relative;
+}
+
+.code-snippet::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-violet));
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.code-highlight {
+    color: var(--accent-green);
+}
+
+/* Metrics Display */
+.metric-card {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent-green);
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    color: var(--text-gray);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Feature Grid */
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+.feature-card {
+    padding: 2rem;
+    text-align: center;
+}
+
+.feature-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-violet));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feature-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: var(--text-white);
+}
+
+.feature-description {
+    color: var(--text-gray);
+    line-height: 1.6;
+}
+
+/* Navigation (for future sections) */
+.nav-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-glass);
+    backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--border-gray);
+    padding: 1rem 0;
+    z-index: 100;
+    transition: var(--transition-smooth);
+    transform: translateY(-100%);
+}
+
+.nav-header.visible {
+    transform: translateY(0);
+}
+
+.nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-white);
+    text-decoration: none;
+}
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mt-4 { margin-top: 2rem; }
+
+.opacity-70 { opacity: 0.7; }
+.opacity-80 { opacity: 0.8; }
+.opacity-90 { opacity: 0.9; }

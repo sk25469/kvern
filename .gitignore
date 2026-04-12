@@ -198,6 +198,39 @@ cython_debug/
 #   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
 #   that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
 #   and can be added to the global gitignore or merged into this file. However, if you prefer, 
+
+# KVern-specific
+# SQLite databases (analytics storage)
+*.db
+kvern_analytics.db
+
+# Cache data
+cache/
+*.cache
+
+# Development configs with sensitive data
+config.local.yaml
+.env.local
+
+# Performance profiling outputs
+*.prof
+profiling/
+
+# Streamlit cache
+.streamlit/
+
+# Large model files (if downloading locally)
+models/
+*.safetensors
+*.bin
+
+# LLM output logs
+outputs/
+generations.log
+
+# Benchmark results
+benchmarks/results/
+*.bench
 #   you could uncomment the following to ignore the entire vscode folder
 # .vscode/
 

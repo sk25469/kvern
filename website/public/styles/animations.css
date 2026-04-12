@@ -1,0 +1,250 @@
+/* ===== ANIMATIONS ===== */
+
+/* Trie Animation Keyframes */
+@keyframes tokenFlow {
+    0% {
+        opacity: 0;
+        transform: translateX(-40px);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(120px);
+    }
+}
+
+@keyframes trieHit {
+    0% {
+        box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(168, 85, 247, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.8);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Animation Classes */
+.animate-token-flow {
+    animation: tokenFlow 2s ease-in-out infinite;
+}
+
+.animate-trie-hit {
+    animation: trieHit 1s ease-in-out;
+}
+
+.animate-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+    opacity: 0;
+}
+
+.animate-slide-in-left {
+    animation: slideInLeft 0.8s ease-out forwards;
+    opacity: 0;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.8s ease-out forwards;
+    opacity: 0;
+}
+
+/* Trie Animation Sequence */
+.trie-animation.active .token-flow {
+    opacity: 1;
+    animation: tokenFlow 3s ease-in-out infinite;
+}
+
+.trie-animation.active .token:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.trie-animation.active .token:nth-child(2) {
+    animation-delay: 0.3s;
+}
+
+.trie-animation.active .token:nth-child(3) {
+    animation-delay: 0.6s;
+}
+
+/* Trie Node Positioning */
+.trie-structure .trie-node.child:nth-child(1) {
+    top: 50px;
+    left: 30px;
+}
+
+.trie-structure .trie-node.child:nth-child(1) .trie-node:first-child {
+    top: 30px;
+    left: -10px;
+}
+
+.trie-structure .trie-node.child:nth-child(1) .trie-node:last-child {
+    top: 30px;
+    left: 20px;
+}
+
+.trie-structure .trie-node.child:nth-child(2) {
+    top: 50px;
+    right: 30px;
+}
+
+.trie-structure .trie-node.child:nth-child(2) .trie-node {
+    top: 30px;
+    left: 10px;
+}
+
+/* Hover Animations */
+.btn-primary,
+.btn-secondary {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+}
+
+/* Card Hover Effects */
+.glass-card {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+    transform: translateY(-4px);
+}
+
+/* Text Animations */
+.hero-title {
+    animation: fadeInUp 1s ease-out 0.2s both;
+}
+
+.hero-subtitle {
+    animation: fadeInUp 1s ease-out 0.4s both;
+}
+
+.hero-buttons {
+    animation: fadeInUp 1s ease-out 0.6s both;
+}
+
+.hero-visual {
+    animation: slideInRight 1s ease-out 0.8s both;
+}
+
+/* Intersection Observer Animations */
+.scroll-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Loading States */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Performance Optimizations */
+.trie-animation,
+.token-flow,
+.trie-node {
+    will-change: transform, opacity;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .trie-animation.active .token-flow,
+    .animate-token-flow,
+    .animate-trie-hit,
+    .animate-pulse-glow {
+        animation: none;
+    }
+}

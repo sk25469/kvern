@@ -1,0 +1,30 @@
+proxy:
+  host: 0.0.0.0
+  port: 8080
+
+backend:
+  url: http://localhost:11434   # Ollama default
+  timeout_seconds: 120
+
+tokenizer:
+  model_map:
+    llama3: meta-llama/Meta-Llama-3-8B-Instruct
+    llama32: meta-llama/Llama-3.2-1B-Instruct
+    mistral: mistralai/Mistral-7B-Instruct-v0.2
+    # add models as needed
+
+trie:
+  min_prefix_tokens: 32         # ignore prefixes shorter than this
+  max_nodes_per_model: 50000    # memory cap — trigger eviction above this
+
+eviction:
+  policy: cost_aware            # lru | lfu_decay | cost_aware
+  cost_per_token: 1.0           # relative unit, tunable
+  decay_rate: 0.01              # for lfu_decay policy
+
+analytics:
+  db_path: ./data/cache_analytics.db
+  retention_days: 30
+
+dashboard:
+  port: 8501
