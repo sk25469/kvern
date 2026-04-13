@@ -14,8 +14,8 @@ from typing import Dict, Any
 import yaml
 import time
 
-from ..tokenizer.pipeline import TokenizerPipeline
-from ..trie.manager import TrieManager
+# from ..tokenizer.pipeline import TokenizerPipeline  # TODO: implement
+from ..trie.manager import KVPrefixManager
 from ..analytics.store import AnalyticsStore
 
 app = FastAPI(
@@ -25,8 +25,8 @@ app = FastAPI(
 )
 
 # Global components (initialized on startup)
-tokenizer_pipeline: TokenizerPipeline = None
-trie_manager: TrieManager = None
+# tokenizer_pipeline: TokenizerPipeline = None  # TODO: implement
+trie_manager: KVPrefixManager = None
 analytics_store: AnalyticsStore = None
 backend_client: httpx.AsyncClient = None
 config: Dict[str, Any] = None
@@ -35,15 +35,15 @@ config: Dict[str, Any] = None
 @app.on_event("startup")
 async def startup_event():
     """Initialize components on startup."""
-    global tokenizer_pipeline, trie_manager, analytics_store, backend_client, config
+    global trie_manager, analytics_store, backend_client, config
     
     # Load config
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
     
     # Initialize components
-    tokenizer_pipeline = TokenizerPipeline(config["tokenizer"]["model_map"])
-    trie_manager = TrieManager(config["trie"])
+    # tokenizer_pipeline = TokenizerPipeline(config["tokenizer"]["model_map"])  # TODO: implement
+    trie_manager = KVPrefixManager(max_nodes=config["trie"]["max_nodes_per_model"])
     analytics_store = AnalyticsStore(config["analytics"]["db_path"])
     
     # Backend HTTP client
@@ -87,20 +87,23 @@ async def chat_completions(request: Request):
     # Async trie operations (don't block critical path)
     async def record_trie_analytics():
         try:
-            # Tokenize prompt
-            token_ids = await tokenizer_pipeline.tokenize(model, messages)
+            # TODO: Tokenize prompt when TokenizerPipeline is implemented
+            # token_ids = await tokenizer_pipeline.tokenize(model, messages)
             
-            # Trie lookup and insert
-            hit_info = await trie_manager.lookup(model, token_ids)
-            await trie_manager.insert(model, token_ids)
+            # Mock tokenization for now - just use message length as rough estimate
+            mock_token_ids = list(range(len(str(messages))))  # Simple mock
+            
+            # Trie lookup and insert  
+            match_depth = trie_manager.find_longest_common_prefix(mock_token_ids)
+            trie_manager.insert(mock_token_ids)
             
             # Record event
             await analytics_store.record_event(
                 request_id=request_id,
                 model=model, 
-                prompt_tokens=len(token_ids),
-                shared_prefix_tokens=hit_info.get("match_depth", 0),
-                is_hit=hit_info.get("is_hit", False)
+                prompt_tokens=len(mock_token_ids),
+                shared_prefix_tokens=match_depth,
+                is_hit=match_depth > 0
             )
         except Exception as e:
             print(f"Trie analytics error (non-blocking): {e}")
@@ -154,7 +157,8 @@ async def health():
 async def metrics():
     """Expose basic trie metrics."""
     try:
-        trie_stats = await trie_manager.get_stats()
+        # TODO: implement get_stats method on KVPrefixManager
+        trie_stats = {"node_count": trie_manager.current_node_count, "max_nodes": trie_manager.max_nodes}
         analytics_stats = await analytics_store.get_summary_stats()
         
         return {

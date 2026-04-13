@@ -3,7 +3,7 @@ proxy:
   port: 8080
 
 backend:
-  url: http://localhost:11434   # Ollama default
+  url: http://172.17.192.1:11434   # Ollama via WSL2 bridge
   timeout_seconds: 120
 
 tokenizer:
