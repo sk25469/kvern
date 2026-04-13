@@ -16,28 +16,8 @@ LLM inference is wasteful by default. Every request triggers a full forward pass
 
 ## Architecture Overview
 
-```
-Client Request ──┐
-(OpenAI API)     │   ┌─────────────────────────────────┐
-                 └──►│          KV Cache Manager        │
-                     │  ┌─────────┐  ┌──────────────┐   │
-                     │  │  Proxy  │  │  Tokenizer   │   │
-                     │  │FastAPI  │  │  Pipeline    │   │
-                     │  └─────────┘  └──────────────┘   │
-                     │       │              │           │
-                     │       │       ┌──────▼────────┐  │
-                     │       │       │  Prefix Trie  │  │
-                     │       │       │ (token-level) │  │
-                     │       │       └───────────────┘  │
-                     │       │                          │
-                     │       └──────────────────────────┼──┐
-                     └──────────────────────────────────┘  │
-                                                           ▼
-                                                 ┌─────────────────┐
-                                                 │  vLLM / Ollama  │
-                                                 │ (model backend) │
-                                                 └─────────────────┘
-```
+<img width="4136" height="3715" alt="KVERN_ARCH" src="https://github.com/user-attachments/assets/cdae9911-e7e9-4f17-96aa-07d97dbaa352" />
+
 
 **Transparent Proxy**: Zero API changes - clients use standard OpenAI `/v1/chat/completions` endpoint
 
