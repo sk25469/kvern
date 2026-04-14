@@ -13,6 +13,14 @@ tokenizer:
     mistral: mistralai/Mistral-7B-Instruct-v0.2
     # add models as needed
 
+
+normalization:
+  llama3.2:
+    - pattern: "Today Date: \\d{1,2} \\w+ \\d{4}\\n"
+      placeholder: "Today Date: NORMALIZED\n"
+      source: template_injected
+      # add more patterns as needed for each model
+
 trie:
   min_prefix_tokens: 32         # ignore prefixes shorter than this
   max_nodes_per_model: 50000    # memory cap — trigger eviction above this
