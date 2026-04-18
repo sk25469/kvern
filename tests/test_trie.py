@@ -1,329 +1,397 @@
 """
-Unit tests for KVern trie operations.
+tests/test_trie.py
 
-Tests the core trie functionality including insert, lookup, eviction,
-and hot prefix queries validated in the POC notebook.
+Tests for the trie layer. No tokenizer, no proxy, no GPU.
+All tests operate on synthetic integer token ID sequences.
+
+Run with: pytest tests/test_trie.py -v
 """
 
-import pytest
+import asyncio
 import time
-from typing import List
 
-from src.trie.prefix_trie import PrefixTrie, LookupResult, HotPrefix
+import pytest
+
 from src.trie.node import TrieNode
-from .fixtures import sample_token_sequences, populated_trie, empty_trie
+from src.trie.prefix_trie import (
+    evict_node,
+    eviction_candidates,
+    hot_prefixes,
+    insert,
+    is_leaf,
+    lookup,
+    node_count,
+)
+from src.trie.manager import KVPrefixManager
 
 
-class TestTrieNode:
-    """Tests for TrieNode dataclass."""
-    
-    def test_node_creation(self):
-        """Test basic node creation."""
-        node = TrieNode(token_id=123)
-        
-        assert node.token_id == 123
-        assert node.count == 0
-        assert node.children == {}
-        assert node.token_depth == 0
-        assert node.last_seen == 0.0
-        assert node.first_seen == 0.0
-    
-    def test_node_with_parameters(self):
-        """Test node creation with all parameters."""
-        current_time = time.time()
-        
-        node = TrieNode(
-            token_id=456,
-            count=5,
-            token_depth=10,
-            first_seen=current_time - 100,
-            last_seen=current_time
-        )
-        
-        assert node.token_id == 456
-        assert node.count == 5
-        assert node.token_depth == 10
-        assert node.first_seen == current_time - 100
-        assert node.last_seen == current_time
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+def make_root() -> TrieNode:
+    return TrieNode()
 
 
-class TestPrefixTrie:
-    """Tests for PrefixTrie operations."""
-    
-    def test_empty_trie_creation(self):
-        """Test creating an empty trie."""
-        trie = PrefixTrie(min_prefix_tokens=10)
-        
-        assert trie.min_prefix_tokens == 10
-        assert trie.total_nodes == 1  # Root node
-        assert trie.root.token_id == -1
-        assert len(trie.root.children) == 0
-    
-    def test_single_sequence_insertion(self, empty_trie):
-        """Test inserting a single token sequence."""
-        token_ids = [1, 2, 3, 4, 5]
-        
-        empty_trie.insert(token_ids)
-        
-        assert empty_trie.total_nodes == 6  # Root + 5 tokens
-        
-        # Verify path exists
-        current = empty_trie.root
-        for i, token_id in enumerate(token_ids):
-            assert token_id in current.children
-            current = current.children[token_id]
-            assert current.token_id == token_id
-            assert current.token_depth == i + 1
-            assert current.count == 1
-    
-    def test_multiple_insertions_same_sequence(self, empty_trie):
-        """Test inserting the same sequence multiple times."""
-        token_ids = [10, 20, 30]
-        
-        # Insert same sequence 3 times
-        for _ in range(3):
-            empty_trie.insert(token_ids)
-        
-        # Should still have same number of nodes
-        assert empty_trie.total_nodes == 4  # Root + 3 tokens
-        
-        # But counts should be incremented
-        current = empty_trie.root
-        for token_id in token_ids:
-            current = current.children[token_id]
-            assert current.count == 3
-    
-    def test_overlapping_sequences(self, empty_trie):
-        """Test inserting sequences with shared prefixes."""
-        seq1 = [1, 2, 3, 4]
-        seq2 = [1, 2, 5, 6]
-        
-        empty_trie.insert(seq1)
-        empty_trie.insert(seq2)
-        
-        # Should have: root + [1,2] shared + [3,4] + [5,6]
-        assert empty_trie.total_nodes == 7
-        
-        # Check shared prefix counts
-        node_1 = empty_trie.root.children[1]
+# Synthetic sequences that share a prefix
+SYSTEM_PROMPT = list(range(100))          # tokens 0..99 — simulates a system prompt
+Q1 = SYSTEM_PROMPT + [200, 201, 202]      # system + question 1
+Q2 = SYSTEM_PROMPT + [300, 301]           # system + question 2
+Q3 = SYSTEM_PROMPT + [400]               # system + question 3
+UNRELATED = list(range(500, 540))         # completely different
+
+
+# ---------------------------------------------------------------------------
+# insert + lookup — core correctness
+# ---------------------------------------------------------------------------
+
+class TestInsertLookup:
+
+    def test_lookup_on_empty_trie_returns_zero_depth(self):
+        root = make_root()
+        depth, is_hit = lookup(root, Q1, min_prefix_tokens=32)
+        assert depth == 0
+        assert is_hit is False
+
+    def test_exact_prefix_match(self):
+        root = make_root()
+        insert(root, Q1)
+        # Q2 shares SYSTEM_PROMPT (100 tokens) with Q1
+        depth, is_hit = lookup(root, Q2, min_prefix_tokens=32)
+        assert depth == len(SYSTEM_PROMPT)
+        assert is_hit is True
+
+    def test_full_sequence_match(self):
+        root = make_root()
+        insert(root, Q1)
+        depth, is_hit = lookup(root, Q1, min_prefix_tokens=32)
+        assert depth == len(Q1)
+        assert is_hit is True
+
+    def test_no_match_unrelated_sequence(self):
+        root = make_root()
+        insert(root, Q1)
+        depth, is_hit = lookup(root, UNRELATED, min_prefix_tokens=32)
+        assert depth == 0
+        assert is_hit is False
+
+    def test_is_hit_false_below_min_prefix_tokens(self):
+        root = make_root()
+        short_seq = [1, 2, 3, 4, 5]  # only 5 tokens shared
+        insert(root, short_seq + [99])
+        depth, is_hit = lookup(root, short_seq + [100], min_prefix_tokens=32)
+        assert depth == 5
+        assert is_hit is False  # matched 5 < 32
+
+    def test_is_hit_true_at_exactly_min_prefix_tokens(self):
+        root = make_root()
+        shared = list(range(32))
+        insert(root, shared + [999])
+        depth, is_hit = lookup(root, shared + [888], min_prefix_tokens=32)
+        assert depth == 32
+        assert is_hit is True
+
+    def test_lookup_is_read_only(self):
+        """lookup() must not create nodes."""
+        root = make_root()
+        lookup(root, Q1, min_prefix_tokens=32)
+        assert node_count(root) == 0
+
+
+# ---------------------------------------------------------------------------
+# Count semantics — path-level counting
+# ---------------------------------------------------------------------------
+
+class TestCountSemantics:
+
+    def test_count_increments_on_every_node_along_path(self):
+        """
+        The key invariant: count at depth D = number of requests that shared
+        at least D tokens. Not just requests that terminated at depth D.
+        """
+        root = make_root()
+        insert(root, Q1)
+        insert(root, Q2)
+        insert(root, Q3)
+
+        # Walk down to depth 50 (middle of shared system prompt)
+        node = root
+        for token_id in SYSTEM_PROMPT[:50]:
+            node = node.children[token_id]
+
+        # All 3 requests passed through this node
+        assert node.count == 3
+
+    def test_count_at_divergence_point(self):
+        """After the shared prefix, counts drop to 1 at divergent branches."""
+        root = make_root()
+        insert(root, Q1)
+        insert(root, Q2)
+
+        # The last shared node (end of SYSTEM_PROMPT) should have count=2
+        node = root
+        for token_id in SYSTEM_PROMPT:
+            node = node.children[token_id]
+        assert node.count == 2
+
+        # Q1's first unique token — only Q1 goes here
+        q1_branch = node.children[Q1[len(SYSTEM_PROMPT)]]
+        assert q1_branch.count == 1
+
+    def test_repeated_inserts_accumulate_count(self):
+        root = make_root()
+        for _ in range(10):
+            insert(root, Q1)
+
+        node = root
+        for token_id in Q1:
+            node = node.children[token_id]
+        assert node.count == 10
+
+
+# ---------------------------------------------------------------------------
+# token_depth metadata
+# ---------------------------------------------------------------------------
+
+class TestTokenDepth:
+
+    def test_token_depth_set_correctly_on_creation(self):
+        root = make_root()
+        insert(root, [10, 20, 30])
+
+        node = root
+        for expected_depth, token_id in enumerate([10, 20, 30], start=1):
+            node = node.children[token_id]
+            assert node.token_depth == expected_depth
+
+    def test_token_depth_does_not_change_on_subsequent_inserts(self):
+        root = make_root()
+        insert(root, [10, 20, 30])
+        insert(root, [10, 20, 30])
+
+        node = root.children[10].children[20].children[30]
+        assert node.token_depth == 3
+
+
+# ---------------------------------------------------------------------------
+# node_count
+# ---------------------------------------------------------------------------
+
+class TestNodeCount:
+
+    def test_empty_trie_has_zero_nodes(self):
+        root = make_root()
+        assert node_count(root) == 0
+
+    def test_non_overlapping_sequences(self):
+        root = make_root()
+        insert(root, [1, 2, 3])
+        insert(root, [4, 5, 6])
+        assert node_count(root) == 6
+
+    def test_fully_overlapping_sequences(self):
+        root = make_root()
+        insert(root, [1, 2, 3])
+        insert(root, [1, 2, 3, 4])
+        assert node_count(root) == 4  # shared 1,2,3 + unique 4
+
+    def test_partial_overlap(self):
+        root = make_root()
+        insert(root, [1, 2, 3])    # 3 nodes
+        insert(root, [1, 2, 9])    # shares 1,2 + adds 9 → 4 nodes total
+        assert node_count(root) == 4
+
+
+# ---------------------------------------------------------------------------
+# hot_prefixes
+# ---------------------------------------------------------------------------
+
+class TestHotPrefixes:
+
+    def test_returns_most_frequent_nodes(self):
+        root = make_root()
+        # system prompt used 10 times, unique tails each time
+        for i in range(10):
+            insert(root, SYSTEM_PROMPT + [1000 + i])
+
+        # One unrelated request
+        insert(root, UNRELATED)
+
+        top = hot_prefixes(root, n=1, min_prefix_tokens=32)
+        assert len(top) == 1
+        # The hot node should be deep in the system prompt path
+        assert top[0].count == 10
+        assert top[0].token_depth >= 32
+
+    def test_filters_below_min_depth(self):
+        root = make_root()
+        insert(root, [1, 2, 3])  # depth 3, below any reasonable min
+        results = hot_prefixes(root, n=10, min_prefix_tokens=32)
+        assert results == []
+
+    def test_respects_n_limit(self):
+        root = make_root()
+        for i in range(5):
+            insert(root, SYSTEM_PROMPT + [2000 + i])
+        results = hot_prefixes(root, n=2, min_prefix_tokens=32)
+        assert len(results) <= 2
+
+
+# ---------------------------------------------------------------------------
+# Eviction
+# ---------------------------------------------------------------------------
+
+class TestEviction:
+
+    def test_evict_leaf_node(self):
+        root = make_root()
+        insert(root, [1, 2, 3])
+        assert node_count(root) == 3
+
+        # [3] is a leaf — evict it
+        parent = root.children[1].children[2]
+        evict_node(parent, 3)
+        assert node_count(root) == 2
+
+    def test_evict_nonexistent_token_is_noop(self):
+        root = make_root()
+        insert(root, [1, 2, 3])
+        evict_node(root, 999)  # 999 doesn't exist under root
+        assert node_count(root) == 3
+
+    def test_eviction_candidates_excludes_root(self):
+        root = make_root()
+        insert(root, [1, 2, 3])
+        candidates = eviction_candidates(root)
+        nodes = [node for _, _, node in candidates]
+        assert root not in nodes
+
+    def test_is_leaf(self):
+        root = make_root()
+        insert(root, [1, 2])
+        node_1 = root.children[1]
         node_2 = node_1.children[2]
-        assert node_1.count == 2  # Both sequences pass through
-        assert node_2.count == 2  # Both sequences pass through
-        
-        # Check divergent paths
-        node_3 = node_2.children[3]
-        node_5 = node_2.children[5]
-        assert node_3.count == 1  # Only seq1
-        assert node_5.count == 1  # Only seq2
-    
-    def test_lookup_exact_match(self, populated_trie, sample_token_sequences):
-        """Test looking up an exact sequence that exists."""
-        long_seq = sample_token_sequences["long_sequence"]
-        
-        result = populated_trie.lookup(long_seq)
-        
-        assert result.match_depth == len(long_seq)
-        assert result.is_hit == True  # Assuming min_prefix_tokens <= len(long_seq)
-        assert result.matched_node is not None
-        assert result.matched_node.count >= 1
-    
-    def test_lookup_partial_match(self, populated_trie, sample_token_sequences):
-        """Test looking up a sequence that partially matches."""
-        long_seq = sample_token_sequences["long_sequence"]
-        partial_seq = long_seq[:20]  # First 20 tokens
-        
-        result = populated_trie.lookup(partial_seq)
-        
-        assert result.match_depth == len(partial_seq)
-        assert result.matched_node is not None
-    
-    def test_lookup_no_match(self, populated_trie):
-        """Test looking up a sequence with no match."""
-        non_existent = [999, 998, 997]
-        
-        result = populated_trie.lookup(non_existent)
-        
-        assert result.match_depth == 0
-        assert result.is_hit == False
-        assert result.matched_node is None
-    
-    def test_lookup_empty_sequence(self, populated_trie):
-        """Test looking up an empty sequence."""
-        result = populated_trie.lookup([])
-        
-        assert result.match_depth == 0
-        assert result.is_hit == False
-    
-    def test_find_prefix_legacy_method(self, populated_trie, sample_token_sequences):
-        """Test legacy find_prefix method for compatibility."""
-        long_seq = sample_token_sequences["long_sequence"]
-        
-        match_length = populated_trie.find_prefix(long_seq)
-        
-        assert match_length == len(long_seq)
-        assert match_length > 0
-    
-    def test_hot_prefixes_query(self, populated_trie):
-        """Test hot prefix identification."""
-        hot_prefixes = populated_trie.get_hot_prefixes(n=5, min_count=1)
-        
-        assert isinstance(hot_prefixes, list)
-        assert len(hot_prefixes) > 0
-        
-        # Check sorting (should be descending by count)
-        for i in range(1, len(hot_prefixes)):
-            assert hot_prefixes[i-1].count >= hot_prefixes[i].count
-        
-        # Verify structure
-        for prefix in hot_prefixes:
-            assert isinstance(prefix, HotPrefix)
-            assert prefix.count >= 1
-            assert prefix.depth >= populated_trie.min_prefix_tokens
-            assert len(prefix.token_ids) == prefix.depth
-    
-    def test_eviction_candidates_lru(self, populated_trie):
-        """Test LRU eviction candidate ranking."""
-        candidates = populated_trie.get_eviction_candidates(policy="lru")
-        
-        assert len(candidates) > 0
-        
-        # Check LRU ordering (oldest first)
-        for i in range(1, len(candidates)):
-            assert candidates[i-1].last_seen <= candidates[i].last_seen
-    
-    def test_eviction_candidates_cost_aware(self, populated_trie):
-        """Test cost-aware eviction candidate ranking."""
-        candidates = populated_trie.get_eviction_candidates(policy="cost_aware")
-        
-        assert len(candidates) > 0
-        
-        # Verify nodes are present (specific ordering depends on implementation)
-        assert all(isinstance(node, TrieNode) for node in candidates)
-        assert all(node.token_id != -1 for node in candidates)  # No root node
-    
-    def test_eviction_execution(self, populated_trie):
-        """Test actual node eviction."""
-        initial_count = populated_trie.total_nodes
-        target_count = max(2, initial_count - 3)  # Evict 3 nodes, keep at least root
-        
-        evicted = populated_trie.evict_nodes(target_count)
-        
-        assert len(evicted) >= 0
-        assert populated_trie.total_nodes <= initial_count
-        assert populated_trie.total_nodes >= 1  # Root should remain
-        
-        # Verify evicted nodes are no longer accessible
-        for node in evicted:
-            assert isinstance(node, TrieNode)
-    
-    def test_trie_stats(self, populated_trie):
-        """Test trie statistics generation."""
-        stats = populated_trie.get_stats()
-        
-        required_keys = [
-            "total_nodes", "max_depth", "leaf_nodes", 
-            "min_prefix_threshold", "branching_factor"
-        ]
-        
-        for key in required_keys:
-            assert key in stats
-        
-        assert stats["total_nodes"] >= 1
-        assert stats["max_depth"] >= 0
-        assert stats["leaf_nodes"] >= 0
-        assert stats["min_prefix_threshold"] == populated_trie.min_prefix_tokens
-    
-    def test_concurrent_insertions(self, empty_trie):
-        """Test trie behavior with concurrent-like insertions."""
-        sequences = [
-            [1, 2, 3],
-            [1, 2, 4], 
-            [1, 5, 6],
-            [7, 8, 9]
-        ]
-        
-        for seq in sequences:
-            empty_trie.insert(seq)
-        
-        # Verify structure
-        assert 1 in empty_trie.root.children
-        node_1 = empty_trie.root.children[1]
-        assert node_1.count == 3  # Three sequences start with 1
-        
-        assert 2 in node_1.children
-        assert 5 in node_1.children
-        
-        node_2 = node_1.children[2]
-        assert node_2.count == 2  # Two sequences have [1,2]
-    
-    def test_deep_sequence_insertion(self, empty_trie):
-        """Test inserting very deep sequences."""
-        deep_sequence = list(range(1000))  # 1000 tokens
-        
-        empty_trie.insert(deep_sequence)
-        
-        assert empty_trie.total_nodes == 1001  # Root + 1000 tokens
-        
-        # Verify we can traverse to the end
-        current = empty_trie.root
-        for i, token_id in enumerate(deep_sequence):
-            assert token_id in current.children
-            current = current.children[token_id]
-            assert current.token_depth == i + 1
-    
-    def test_min_prefix_threshold_enforcement(self):
-        """Test that min_prefix_tokens threshold is enforced."""
-        trie = PrefixTrie(min_prefix_tokens=20)
-        
-        short_seq = [1, 2, 3, 4, 5]  # Below threshold
-        long_seq = list(range(1, 26))  # Above threshold
-        
-        trie.insert(short_seq)
-        trie.insert(long_seq)
-        
-        # Short sequence lookup should not be a hit
-        short_result = trie.lookup(short_seq)
-        assert short_result.is_hit == False
-        
-        # Long sequence lookup should be a hit
-        long_result = trie.lookup(long_seq)
-        assert long_result.is_hit == True
-        
-        # Hot prefixes should only include sequences above threshold
-        hot_prefixes = trie.get_hot_prefixes(min_count=1)
-        valid_hot_prefixes = [hp for hp in hot_prefixes if hp.depth >= 20]
-        assert len(valid_hot_prefixes) >= 0  # May be 0 if only one sequence above threshold
+        assert not is_leaf(node_1)
+        assert is_leaf(node_2)
 
 
-class TestTriePerformance:
-    """Performance tests for trie operations."""
-    
-    def test_large_scale_insertion_performance(self, timing_context):
-        """Test performance with large number of insertions."""
-        trie = PrefixTrie(min_prefix_tokens=10)
-        
-        # Generate test sequences
-        sequences = [
-            list(range(i, i + 50))  # 50-token sequences
-            for i in range(1000)  # 1000 different sequences
-        ]
-        
-        with timing_context() as timer:
+# ---------------------------------------------------------------------------
+# Model isolation
+# ---------------------------------------------------------------------------
+
+class TestModelIsolation:
+
+    def test_same_tokens_different_models_separate_tries(self):
+        """
+        Identical token sequences under different model names must not
+        produce cross-model prefix hits. Token ID spaces are model-specific.
+        """
+        manager = KVPrefixManager(min_prefix_tokens=1)
+
+        async def run():
+            await manager.record("llama3", [1, 2, 3, 4, 5])
+            await manager.wait_for_pending_inserts()  # Wait for first insert
+            depth_llama, hit_llama = await manager.record("llama3", [1, 2, 3, 4, 5, 6])
+            depth_mistral, hit_mistral = await manager.record("mistral", [1, 2, 3, 4, 5, 6])
+            return depth_llama, hit_llama, depth_mistral, hit_mistral
+
+        dl, hl, dm, hm = asyncio.run(run())
+        assert hl is True   # llama3 has seen [1,2,3,4,5] before
+        assert hm is False  # mistral has NOT seen [1,2,3,4,5] before
+
+    def test_model_counts_are_independent(self):
+        manager = KVPrefixManager(min_prefix_tokens=1)
+
+        async def run():
+            await manager.record("llama3", [10, 20, 30])
+            await manager.record("llama3", [10, 20, 30])
+            await manager.record("mistral", [10, 20, 30])
+            
+            # Wait for all background insert tasks to complete
+            await manager.wait_for_pending_inserts()
+            
+            return (
+                manager.node_count("llama3"),
+                manager.node_count("mistral"),
+            )
+
+        llama_count, mistral_count = asyncio.run(run())
+        assert llama_count == 3
+        assert mistral_count == 3
+
+
+# ---------------------------------------------------------------------------
+# KVPrefixManager — async behavior
+# ---------------------------------------------------------------------------
+
+class TestKVPrefixManager:
+
+    def test_record_returns_correct_depth_and_hit(self):
+        manager = KVPrefixManager(min_prefix_tokens=32)
+
+        async def run():
+            await manager.record("llama3", Q1)
+            # Wait for the first insert to complete before second record call
+            await manager.wait_for_pending_inserts()
+            return await manager.record("llama3", Q2)
+
+        depth, is_hit = asyncio.run(run())
+        assert depth == len(SYSTEM_PROMPT)
+        assert is_hit is True
+
+    def test_first_request_is_always_miss(self):
+        manager = KVPrefixManager(min_prefix_tokens=32)
+
+        async def run():
+            return await manager.record("llama3", Q1)
+
+        depth, is_hit = asyncio.run(run())
+        assert depth == 0
+        assert is_hit is False
+
+    def test_get_models_reflects_seen_models(self):
+        manager = KVPrefixManager(min_prefix_tokens=1)
+
+        async def run():
+            await manager.record("llama3", [1, 2])
+            await manager.record("mistral", [3, 4])
+            await manager.wait_for_pending_inserts()
+
+        asyncio.run(run())
+        assert set(manager.models()) == {"llama3", "mistral"}
+
+    def test_concurrent_inserts_no_corruption(self):
+        """
+        Fire N concurrent inserts for the same model.
+        Node count should be deterministic regardless of interleaving.
+        """
+        manager = KVPrefixManager(min_prefix_tokens=1)
+        sequences = [SYSTEM_PROMPT + [i] for i in range(20)]
+
+        async def run():
+            tasks = [manager.record("llama3", seq) for seq in sequences]
+            await asyncio.gather(*tasks)
+            await manager.wait_for_pending_inserts()
+
+        asyncio.run(run())
+        # 100 shared nodes + 20 unique leaf nodes = 120
+        assert manager.node_count("llama3") == 120
+
+    def test_memory_cap_triggers_eviction(self):
+        """With a tiny cap, eviction should fire and keep node count bounded."""
+        manager = KVPrefixManager(min_prefix_tokens=1, max_nodes_per_model=10)
+        sequences = [list(range(i, i + 8)) for i in range(0, 80, 8)]
+
+        async def run():
             for seq in sequences:
-                trie.insert(seq)
-        
-        # Performance check (adjust threshold as needed)
-        assert timer.duration < 5.0  # Should complete in under 5 seconds
-        assert trie.total_nodes > 1000
-    
-    def test_lookup_performance(self, populated_trie, sample_token_sequences, timing_context):
-        """Test lookup performance on populated trie."""
-        long_seq = sample_token_sequences["long_sequence"]
-        
-        with timing_context() as timer:
-            for _ in range(1000):  # 1000 lookups
-                result = populated_trie.lookup(long_seq)
-                assert result.match_depth > 0
-        
-        # Performance check
-        assert timer.duration < 1.0  # Should be very fast
+                await manager.record("llama3", seq)
+            # Wait for all inserts and eviction tasks to complete
+            await manager.wait_for_pending_inserts()
+            # Small additional sleep for eviction tasks
+            await asyncio.sleep(0.05)
+
+        asyncio.run(run())
+        count = manager.node_count("llama3")
+        # Should have been evicted at some point — not all 80 nodes remain
+        # (10 sequences × 8 nodes = 80 without eviction)
+        assert count <= manager.max_nodes_per_model

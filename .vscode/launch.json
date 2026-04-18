@@ -1,0 +1,206 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "🚀 Run Proxy Server",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_proxy.py",
+            "console": "integratedTerminal",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "KVERN_CONFIG": "${workspaceFolder}/config.yaml"
+            },
+            "args": [],
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "🧪 Debug Current Test File",
+            "type": "python",
+            "request": "launch", 
+            "module": "pytest",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "args": [
+                "${file}",
+                "-v",
+                "-s",
+                "--tb=short"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "🧪 Debug All Tests",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "args": [
+                "tests/",
+                "-v",
+                "-s",
+                "--tb=short"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "🧪 Debug Trie Tests",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "args": [
+                "tests/test_trie.py",
+                "-v",
+                "-s",
+                "--tb=long"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "🧪 Debug Tokenizer Tests",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "args": [
+                "tests/test_tokenizer.py",
+                "-v",
+                "-s",
+                "--tb=long"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "📊 Run Dashboard",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "args": [
+                "run",
+                "src/dashboard/app.py"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "🔍 Debug Python Module",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "🧪 Debug Specific Test",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "args": [
+                "-k",
+                "${input:testName}",
+                "-v",
+                "-s",
+                "--tb=long"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "⚡ FastAPI with Auto-reload",
+            "type": "python",
+            "request": "launch",
+            "module": "uvicorn",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "args": [
+                "src.proxy.main:app",
+                "--host", "0.0.0.0",
+                "--port", "8080",
+                "--reload",
+                "--log-level", "debug"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "🔬 Debug Tokenizer Pipeline",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/tokenizer/pipeline.py",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "🔬 Debug Analytics Store",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/analytics/store.py", 
+            "python": "${workspaceFolder}/venv/bin/python",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testName",
+            "description": "Enter the test name/pattern to run",
+            "default": "test_lookup",
+            "type": "promptString"
+        }
+    ]
+}

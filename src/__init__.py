@@ -10,12 +10,12 @@ __author__ = "Sahil"
 __description__ = "LLM KV Cache Manager using token-level Trie optimization"
 
 # Package-level imports for convenience
-from .trie.prefix_trie import PrefixTrie
+from .trie.manager import KVPrefixManager
 from .eviction import get_eviction_policy
 from .analytics.store import AnalyticsStore
 
 __all__ = [
-    "PrefixTrie",
+    "KVPrefixManager",
     "get_eviction_policy", 
     "AnalyticsStore",
 ]

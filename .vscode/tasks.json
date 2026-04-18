@@ -1,0 +1,197 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🧪 Run All Tests",
+            "type": "shell",
+            "command": "${workspaceFolder}/venv/bin/python",
+            "args": ["-m", "pytest", "tests/", "-v"],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": "^(.*?):(\\d+):(\\d+)?:?\\s+(E\\d+)\\s+(.*)",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "code": 4,
+                        "message": 5
+                    }
+                ]
+            }
+        },
+        {
+            "label": "🧪 Run Current Test File",
+            "type": "shell",
+            "command": "${workspaceFolder}/venv/bin/python",
+            "args": ["-m", "pytest", "${file}", "-v"],
+            "group": "test",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            }
+        },
+        {
+            "label": "🚀 Start Proxy Server",
+            "type": "shell",
+            "command": "${workspaceFolder}/venv/bin/python",
+            "args": ["run_proxy.py"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": "^ERROR:.*$",
+                        "message": 0
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^.*started.*$",
+                    "endsPattern": "^.*Waiting for file changes.*$"
+                }
+            }
+        },
+        {
+            "label": "📊 Start Dashboard",
+            "type": "shell",
+            "command": "${workspaceFolder}/venv/bin/python",
+            "args": ["-m", "streamlit", "run", "src/dashboard/app.py"],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "🔧 Install Dependencies",
+            "type": "shell",
+            "command": "${workspaceFolder}/venv/bin/python",
+            "args": ["-m", "pip", "install", "-r", "requirements.txt"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "group": "build"
+        },
+        {
+            "label": "🧹 Clean Cache",
+            "type": "shell",
+            "command": "find",
+            "args": [".", "-type", "d", "-name", "__pycache__", "-exec", "rm", "-rf", "{}", "+"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "🎨 Format Code",
+            "type": "shell",
+            "command": "${workspaceFolder}/venv/bin/python",
+            "args": ["-m", "black", "src/", "tests/", "--line-length", "100"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "group": "build"
+        },
+        {
+            "label": "🔍 Type Check",
+            "type": "shell",
+            "command": "${workspaceFolder}/venv/bin/python",
+            "args": ["-m", "mypy", "src/"],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder}"
+                }
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "group": "test",
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": "^(.*?):(\\d+):(\\d+)?:?\\s+(error|warning|note):\\s+(.*)",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "severity": 4,
+                        "message": 5
+                    }
+                ]
+            }
+        }
+    ]
+}
