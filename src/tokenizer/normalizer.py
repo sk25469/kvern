@@ -16,21 +16,6 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class NormalizationRule:
-    """
-    A single normalization rule for a dynamic segment.
-
-    pattern:     regex matching the dynamic content in the rendered string
-    placeholder: stable string to replace it with
-    source:      where the injection comes from (for documentation/debugging)
-    """
-    pattern: str
-    placeholder: str
-    source: str  # "template_injected" | "client_provided"
-
-
 @dataclass
 class NormalizationRule:
     """

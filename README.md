@@ -31,34 +31,35 @@ LLM inference is wasteful by default. Every request triggers a full forward pass
 
 ## Current Status 
 
-### ✅ **Phase 1 - Notebook Prototype Complete** (April 12, 2026)
+### ✅ **Phase 1 - Core Components Complete** (April 18, 2026)
 
-**Validated Core Concepts:**
-- [x] **Tokenizer Pipeline**: `messages[]` → chat template → token IDs (52 tokens for test case)
-- [x] **MiniTrie Implementation**: Insert, lookup, prefix sharing across conversation turns
-- [x] **Multi-turn Validation**: Correctly identifies shared token sequences (100% prefix match in test)
-- [x] **Trie Visualization**: Tree structure shows hot paths vs. unique branches
-- [x] **Basic Eviction**: Leaf-node LRU (with identified depth-blindness flaw)
+**Production-Ready Modules:**
+- [x] **Trie Core**: Complete function-based implementation with insert, lookup, eviction
+- [x] **Eviction Policies**: LRU, LFU-decay, and cost-aware eviction (addresses POC depth-blind flaw)
+- [x] **Tokenizer Pipeline**: Full HuggingFace integration with model mapping & normalization
+- [x] **Trie Manager**: Per-model roots, async locks, memory cap enforcement
+- [x] **Analytics Store**: SQLite backend with query engine for metrics
+- [x] **Configuration**: YAML-based config system with normalization rules
+- [x] **Test Suite**: 61 passing tests covering core functionality
 
-**Key Discovery - Runtime Template Drift:**
-```
-Llama 3.2 system prefix: "Today Date: 12 Apr 2026"
-```
-**Problem**: Token sequence changes daily, invalidating cache every 24 hours.
-**Impact**: Need normalization strategy before trie insertion.
+**Key Implementation Highlights:**
+- **Cost-Aware Eviction**: Fixes the depth-blind LRU flaw discovered in POC
+- **Template Normalization**: Handles runtime date injection with configurable rules
+- **Async Architecture**: Lock-free lookups, background inserts for zero latency impact
+- **Pluggable Policies**: Factory pattern for eviction strategy selection
 
-### 🔄 **Next - Production Implementation**
+### 🔄 **Phase 1B - Integration Layer** (In Progress)
 
-Refactoring notebook POC into modular source files:
+Main proxy server integration:
 
 ```
 src/
-├── main.py (entry point)
-├── proxy/server.py (FastAPI transparent proxy) 
-├── tokenizer/pipeline.py (HuggingFace tokenization)
-└── trie/
-    ├── node.py (TrieNode with token_depth, timestamps)
-    └── manager.py (per-model roots, async locks)
+├── proxy/
+│   ├── main.py (FastAPI app - partial)
+│   ├── middleware.py (request/response handling)
+│   └── backend.py (upstream forwarding)
+└── dashboard/
+    └── app.py (Streamlit metrics dashboard)
 ```
 
 ## Quick Start
@@ -110,16 +111,18 @@ Date injection breaks daily cache persistence. Requires template normalization b
 
 ## Planned Architecture
 
-### Core Components (DESIGN.md §4)
+### Core Components Implementation Status
 
 | Component | Technology | Status |
 |-----------|------------|---------|
-| **Proxy Layer** | FastAPI | 🔄 Next |
-| **Tokenizer Pipeline** | HuggingFace transformers | ✅ Validated |
-| **Prefix Trie** | Custom token-level trie | ✅ POC done |
-| **Analytics Store** | SQLite | 🔄 Next |
-| **Eviction Engine** | Pluggable policies (LRU/LFU/Cost-aware) | 🔄 Next |
-| **Dashboard** | Streamlit | 🔄 Next |
+| **Prefix Trie** | Custom token-level trie | ✅ **Complete** |
+| **Eviction Engine** | Pluggable policies (LRU/LFU/Cost-aware) | ✅ **Complete** |
+| **Tokenizer Pipeline** | HuggingFace transformers | ✅ **Complete** |
+| **Analytics Store** | SQLite with query engine | ✅ **Complete** |
+| **Trie Manager** | Per-model async orchestration | ✅ **Complete** |
+| **Configuration** | YAML config system | ✅ **Complete** |
+| **Proxy Layer** | FastAPI transparent proxy | 🔄 **Partial** |
+| **Dashboard** | Streamlit metrics visualization | 🔄 **Partial** |
 
 ### Target Metrics
 
@@ -132,15 +135,27 @@ Date injection breaks daily cache persistence. Requires template normalization b
 
 ## Roadmap
 
-### Phase 1 - Observability (Current)
-**Goal**: Measure prefix reuse without GPU dependency
+### Phase 1 - Core Infrastructure ✅ **95% Complete**
+**Goal**: Production-ready caching components
 
 - [x] Notebook prototype validation
-- [ ] FastAPI transparent proxy  
-- [ ] SQLite analytics store
-- [ ] Streamlit dashboard
-- [ ] Cost-aware eviction policy
-- [ ] Config system (YAML)
+- [x] Trie data structure with eviction policies
+- [x] Tokenizer pipeline with normalization
+- [x] SQLite analytics store with query engine
+- [x] Cost-aware eviction policy
+- [x] YAML config system
+- [x] Comprehensive test suite (61 tests)
+- [ ] FastAPI proxy server integration (80% done)
+- [ ] Streamlit dashboard completion
+
+### Phase 1B - Integration ⚡ **Current**
+**Goal**: End-to-end proxy deployment
+
+- [ ] Complete proxy server middleware
+- [ ] Backend forwarding with error handling
+- [ ] Dashboard real-time metrics
+- [ ] Docker deployment package
+- [ ] Performance benchmarking
 
 ### Phase 2 - vLLM Integration  
 **Goal**: Actually influence GPU KV block eviction decisions
@@ -179,11 +194,22 @@ class TrieNode:
     model: str = ""                    # per-model trie roots
 ```
 
-### Cost-Aware Eviction
+### Cost-Aware Eviction (Implemented)
 ```python
+# Fixes the POC depth-blind LRU flaw
 recompute_cost = token_depth * COST_PER_TOKEN
 eviction_score = recompute_cost / (count * recency_weight)
-# Evict high recompute cost + low reuse frequency
+# Now evicts shallow low-frequency nodes over deep high-frequency ones
+```
+
+### Template Normalization (Implemented) 
+```yaml
+# config.yaml - handles runtime date injection
+normalization:
+  llama3.2:
+    - pattern: "Today Date: \\d{1,2} \\w+ \\d{4}\\n"
+      placeholder: "Today Date: NORMALIZED\n"
+      source: template_injected
 ```
 
 ## License
@@ -192,5 +218,6 @@ Apache 2.0 - See [LICENSE](LICENSE) file.
 
 ---
 
-> **Status**: Prototype validated, moving to production implementation.  
-> **Author**: Sahil | **Last Updated**: April 12, 2026
+> **Status**: Core components complete, integrating proxy server.  
+> **Test Coverage**: 61 passing tests  
+> **Author**: Sahil | **Last Updated**: April 18, 2026

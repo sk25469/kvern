@@ -152,6 +152,14 @@ class TokenizerPipeline:
             )
             return None
 
+        # Ensure rendered is a string (should be with tokenize=False)
+        if not isinstance(rendered, str):
+            logger.error(
+                "Expected string from apply_chat_template with tokenize=False, "
+                "got %s for model '%s'", type(rendered).__name__, model
+            )
+            return None
+
         # Step 2: Normalize dynamic injections
         # Replaces dynamic segments (e.g. today's date) with stable placeholders.
         # The normalized string is the trie key — never forwarded to backend.

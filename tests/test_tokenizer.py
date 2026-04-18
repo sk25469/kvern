@@ -10,7 +10,6 @@ from unittest.mock import Mock, patch, MagicMock
 
 from src.tokenizer.pipeline import TokenizerPipeline, TokenizerRegistry 
 from src.tokenizer.model_map import ModelMapper, get_tokenizer_id, is_model_supported
-from .fixtures import mock_tokenizer_responses, sample_conversations
 from src.tokenizer.normalizer import Normalizer, NormalizationRule, NORMALIZATION_PROFILES
 
 
@@ -98,7 +97,7 @@ class TestTokenizerPipeline:
     @patch('transformers.AutoTokenizer')
     def test_pipeline_initialization(self, mock_auto_tokenizer):
         """Test pipeline initialization with model map.""" 
-        pipeline = TokenizerPipeline(self.test_model_map)
+        pipeline = TokenizerPipeline(self.test_model_map) # type: ignore
         
         assert pipeline.model_map == self.test_model_map
         assert pipeline._registry == {}  # Should start empty
