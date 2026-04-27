@@ -87,49 +87,50 @@ class TestModelMapper:
 class TestTokenizerPipeline:
     """Tests for the main tokenizer pipeline."""
     
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures."""
         self.test_model_map = {
             "test-llama": "meta-llama/Llama-3.2-1B-Instruct",
             "test-mistral": "mistralai/Mistral-7B-Instruct-v0.2"
         }
     
-    @patch('transformers.AutoTokenizer')
+    @patch('src.tokenizer.pipeline.AutoTokenizer')
     def test_pipeline_initialization(self, mock_auto_tokenizer):
         """Test pipeline initialization with model map.""" 
-        pipeline = TokenizerPipeline(self.test_model_map) # type: ignore
+        pipeline = TokenizerPipeline(self.test_model_map, Normalizer()) # type: ignore
         
-        assert pipeline.model_map == self.test_model_map
-        assert pipeline._registry == {}  # Should start empty
+        assert pipeline._registry.model_map == self.test_model_map
+        assert len(pipeline._registry._cache) == 0  # Should start empty
     
-    @patch('transformers.AutoTokenizer')  
+    @patch('src.tokenizer.pipeline.AutoTokenizer')  
     def test_tokenizer_loading_and_caching(self, mock_auto_tokenizer):
         """Test tokenizer loading and registry caching."""
         mock_tokenizer = Mock()
         mock_auto_tokenizer.from_pretrained.return_value = mock_tokenizer
         
-        pipeline = TokenizerPipeline(self.test_model_map)
+        pipeline = TokenizerPipeline(self.test_model_map, Normalizer())
         
         # First call should load tokenizer
-        result1 = pipeline._get_or_load("test-llama")
+        result1 = pipeline._registry.get("test-llama")
         mock_auto_tokenizer.from_pretrained.assert_called_once_with(
             "meta-llama/Llama-3.2-1B-Instruct"
         )
         
         # Second call should use cached version
-        result2 = pipeline._get_or_load("test-llama")
+        result2 = pipeline._registry.get("test-llama")
         assert mock_auto_tokenizer.from_pretrained.call_count == 1  # Not called again
         assert result1 is result2  # Same object returned
     
-    @patch('transformers.AutoTokenizer')
+    @patch('src.tokenizer.pipeline.AutoTokenizer')
     def test_unsupported_model_error(self, mock_auto_tokenizer):
         """Test error handling for unsupported models."""
-        pipeline = TokenizerPipeline(self.test_model_map)
+        pipeline = TokenizerPipeline(self.test_model_map, Normalizer())
         
-        with pytest.raises(KeyError, match="Unknown model"):
-            pipeline._get_or_load("unsupported-model")
+        # Unknown model should return None, not raise exception
+        result = pipeline._registry.get("unsupported-model")
+        assert result is None
     
-    @patch('transformers.AutoTokenizer')
+    @patch('src.tokenizer.pipeline.AutoTokenizer')
     def test_tokenize_method_flow(self, mock_auto_tokenizer):
         """Test the main tokenize method flow."""
         # Mock tokenizer behavior
@@ -138,7 +139,7 @@ class TestTokenizerPipeline:
         mock_tokenizer.encode.return_value = [1, 2, 3, 4, 5]
         mock_auto_tokenizer.from_pretrained.return_value = mock_tokenizer
         
-        pipeline = TokenizerPipeline(self.test_model_map)
+        pipeline = TokenizerPipeline(self.test_model_map, Normalizer())
         
         messages = [
             {"role": "user", "content": "Hello"}
@@ -154,7 +155,7 @@ class TestTokenizerPipeline:
         
         assert result == [1, 2, 3, 4, 5]
     
-    @patch('transformers.AutoTokenizer')
+    @patch('src.tokenizer.pipeline.AutoTokenizer')
     def test_chat_template_parameters(self, mock_auto_tokenizer):
         """Test that chat template is called with correct parameters."""
         mock_tokenizer = Mock()
@@ -162,7 +163,7 @@ class TestTokenizerPipeline:
         mock_tokenizer.encode.return_value = [1, 2, 3]
         mock_auto_tokenizer.from_pretrained.return_value = mock_tokenizer
         
-        pipeline = TokenizerPipeline(self.test_model_map)
+        pipeline = TokenizerPipeline(self.test_model_map, Normalizer())
         
         messages = [{"role": "user", "content": "test"}]
         pipeline.tokenize("test-llama", messages)
@@ -174,42 +175,41 @@ class TestTokenizerPipeline:
             add_generation_prompt=True  # Should add generation prompt
         )
     
-    @patch('transformers.AutoTokenizer')
-    def test_async_tokenize_method(self, mock_auto_tokenizer):
-        """Test async tokenize method."""
+    @patch('src.tokenizer.pipeline.AutoTokenizer')
+    def test_tokenizer_registry_caching(self, mock_auto_tokenizer):
+        """Test that tokenizer registry properly caches loaded tokenizers."""
         mock_tokenizer = Mock()
-        mock_tokenizer.apply_chat_template.return_value = "async test"
+        mock_tokenizer.apply_chat_template.return_value = "test text"
         mock_tokenizer.encode.return_value = [10, 20, 30]
         mock_auto_tokenizer.from_pretrained.return_value = mock_tokenizer
         
-        pipeline = TokenizerPipeline(self.test_model_map)
+        pipeline = TokenizerPipeline(self.test_model_map, Normalizer())
         
-        messages = [{"role": "user", "content": "async test"}]
+        messages = [{"role": "user", "content": "test"}]
         
-        # Test async version
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # First tokenization should load tokenizer
+        result1 = pipeline.tokenize("test-llama", messages)
+        assert result1 == [10, 20, 30]
         
-        try:
-            result = loop.run_until_complete(
-                pipeline.tokenize_async("test-llama", messages)
-            )
-            assert result == [10, 20, 30]
-        finally:
-            loop.close()
+        # Second tokenization should use cached tokenizer 
+        result2 = pipeline.tokenize("test-llama", messages)
+        assert result2 == [10, 20, 30]
+        
+        # Should only have loaded tokenizer once
+        assert mock_auto_tokenizer.from_pretrained.call_count == 1
     
-    @patch('transformers.AutoTokenizer')
+    @patch('src.tokenizer.pipeline.AutoTokenizer')
     def test_error_handling_tokenizer_loading(self, mock_auto_tokenizer):
         """Test error handling when tokenizer fails to load."""
         mock_auto_tokenizer.from_pretrained.side_effect = Exception("Network error")
         
-        pipeline = TokenizerPipeline(self.test_model_map)
+        pipeline = TokenizerPipeline(self.test_model_map, Normalizer())
         
-        with pytest.raises(Exception, match="Network error"):
-            pipeline.tokenize("test-llama", [])
+        # Should return None when tokenizer fails to load, not raise exception  
+        result = pipeline.tokenize("test-llama", [])
+        assert result is None
     
-    @patch('transformers.AutoTokenizer')  
+    @patch('src.tokenizer.pipeline.AutoTokenizer')  
     def test_multiple_models_isolation(self, mock_auto_tokenizer):
         """Test that multiple models are handled correctly and cached separately."""
         mock_llama_tokenizer = Mock()
@@ -226,37 +226,38 @@ class TestTokenizerPipeline:
         
         mock_auto_tokenizer.from_pretrained.side_effect = mock_from_pretrained
         
-        pipeline = TokenizerPipeline(self.test_model_map)
+        pipeline = TokenizerPipeline(self.test_model_map, Normalizer())
         
         # Load both tokenizers
-        llama_tok = pipeline._get_or_load("test-llama")
-        mistral_tok = pipeline._get_or_load("test-mistral")
+        llama_tok = pipeline._registry.get("test-llama")
+        mistral_tok = pipeline._registry.get("test-mistral")
         
         # Should be different objects
         assert llama_tok is not mistral_tok
         
         # Should be cached
-        assert len(pipeline._registry) == 2
-        assert pipeline._registry["test-llama"] is mock_llama_tokenizer
-        assert pipeline._registry["test-mistral"] is mock_mistral_tokenizer
+        assert len(pipeline._registry._cache) == 2
+        assert pipeline._registry._cache["test-llama"] is mock_llama_tokenizer
+        assert pipeline._registry._cache["test-mistral"] is mock_mistral_tokenizer
 
+    @patch('src.tokenizer.pipeline.AutoTokenizer')
+    def test_edge_cases_empty_messages(self, mock_auto_tokenizer):
         """Test handling of edge cases like empty messages."""
-        with patch('transformers.AutoTokenizer') as mock_auto:
-            mock_tokenizer = Mock()
-            mock_tokenizer.apply_chat_template.return_value = ""
-            mock_tokenizer.encode.return_value = []
-            mock_auto.from_pretrained.return_value = mock_tokenizer
-            
-            pipeline = TokenizerPipeline({"test": "test/model"})
-            
-            # Test empty messages list
-            result = pipeline.tokenize("test", [])
-            assert result == []
-            
-            # Test messages with empty content
-            empty_messages = [{"role": "user", "content": ""}]
-            result = pipeline.tokenize("test", empty_messages)
-            assert isinstance(result, list)
+        mock_tokenizer = Mock()
+        mock_tokenizer.apply_chat_template.return_value = ""
+        mock_tokenizer.encode.return_value = []
+        mock_auto_tokenizer.from_pretrained.return_value = mock_tokenizer
+        
+        pipeline = TokenizerPipeline({"test": "test/model"}, Normalizer())
+        
+        # Test empty messages list
+        result = pipeline.tokenize("test", [])
+        assert result == []
+        
+        # Test messages with empty content
+        empty_messages = [{"role": "user", "content": ""}]
+        result = pipeline.tokenize("test", empty_messages)
+        assert isinstance(result, list)
 
 
 """
@@ -376,14 +377,14 @@ class TestTokenizerRegistry:
 
     def test_known_model_loads_tokenizer(self):
         mock_tokenizer = MagicMock()
-        with patch("transformers.AutoTokenizer.from_pretrained", return_value=mock_tokenizer):
+        with patch("src.tokenizer.pipeline.AutoTokenizer.from_pretrained", return_value=mock_tokenizer):
             registry = TokenizerRegistry(model_map={"llama3.2": "meta-llama/Llama-3.2-1B-Instruct"})
             result = registry.get("llama3.2")
         assert result is mock_tokenizer
 
     def test_second_call_uses_cache(self):
         mock_tokenizer = MagicMock()
-        with patch("transformers.AutoTokenizer.from_pretrained", return_value=mock_tokenizer) as mock_load:
+        with patch("src.tokenizer.pipeline.AutoTokenizer.from_pretrained", return_value=mock_tokenizer) as mock_load:
             registry = TokenizerRegistry(model_map={"llama3.2": "meta-llama/Llama-3.2-1B-Instruct"})
             registry.get("llama3.2")
             registry.get("llama3.2")
@@ -391,14 +392,14 @@ class TestTokenizerRegistry:
             assert mock_load.call_count == 1
 
     def test_failed_load_returns_none(self):
-        with patch("transformers.AutoTokenizer.from_pretrained", side_effect=OSError("not found")):
+        with patch("src.tokenizer.pipeline.AutoTokenizer.from_pretrained", side_effect=OSError("not found")):
             registry = TokenizerRegistry(model_map={"llama3.2": "bad/path"})
             result = registry.get("llama3.2")
         assert result is None
 
     def test_loaded_models(self):
         mock_tokenizer = MagicMock()
-        with patch("transformers.AutoTokenizer.from_pretrained", return_value=mock_tokenizer):
+        with patch("src.tokenizer.pipeline.AutoTokenizer.from_pretrained", return_value=mock_tokenizer):
             registry = TokenizerRegistry(model_map={"llama3.2": "meta-llama/Llama-3.2-1B-Instruct"})
             assert registry.loaded_models() == []
             registry.get("llama3.2")
@@ -409,7 +410,7 @@ class TestTokenizerRegistry:
 # TokenizerPipeline tests (mocked tokenizer)
 # ─────────────────────────────────────────────
 
-class TestTokenizerPipeline:
+class TestTokenizerPipelineUnit:
 
     def _make_pipeline(self, mock_tokenizer=None):
         """Helper: pipeline with mocked tokenizer and real normalizer."""
