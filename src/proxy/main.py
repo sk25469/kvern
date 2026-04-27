@@ -24,6 +24,7 @@ from ..eviction.lru import LRUEvictionPolicy
 from ..eviction.cost_aware import CostAwareEvictionPolicy
 from ..eviction.lfu_decay import LFUDecayEvictionPolicy
 from .middleware import RequestTrackingMiddleware, CORSMiddleware
+from ..trie.visualizer import get_hot_prefixes_with_text, format_hot_prefixes_display
 
 
 
@@ -253,6 +254,33 @@ async def metrics():
         logger.error(f"Error generating metrics: {e}")
         raise HTTPException(status_code=500, detail=f"Metrics error: {str(e)}")
 
+@app.get("/trie/visualize")
+async def visualize_trie():
+    """Show hot prefixes as readable text."""
+    try:
+        result = {}
+        
+        for model_name, root_node in trie_manager._roots.items():
+            # Get tokenizer for this model
+            tokenizer = tokenizer_pipeline._registry.get(model_name)
+            if tokenizer is None:
+                result[model_name] = {"error": "Tokenizer not loaded"}
+                continue
+            
+            # Get hot prefixes with text
+            hot_prefixes_data = get_hot_prefixes_with_text(
+                root_node, tokenizer, n=10, min_prefix_tokens=32
+            )
+            
+            result[model_name] = {
+                "hot_prefixes": hot_prefixes_data,
+                "display": format_hot_prefixes_display(hot_prefixes_data)
+            }
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Visualization error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
