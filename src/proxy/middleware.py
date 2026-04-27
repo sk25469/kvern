@@ -7,7 +7,7 @@ This module provides FastAPI middleware for request tracking and observability.
 import time
 import uuid
 from fastapi import Request, Response
-from fastapi.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Callable
 
 

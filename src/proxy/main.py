@@ -13,10 +13,19 @@ import uuid
 from typing import Dict, Any
 import yaml
 import time
+import logging
 
-# from ..tokenizer.pipeline import TokenizerPipeline  # TODO: implement
+from ..tokenizer.pipeline import TokenizerPipeline
+from ..tokenizer.normalizer import Normalizer
 from ..trie.manager import KVPrefixManager
+from ..trie.prefix_trie import node_count, hot_prefixes
 from ..analytics.store import AnalyticsStore
+from ..eviction.lru import LRUEvictionPolicy
+from ..eviction.cost_aware import CostAwareEvictionPolicy
+from ..eviction.lfu_decay import LFUDecayEvictionPolicy
+from .middleware import RequestTrackingMiddleware, CORSMiddleware
+
+
 
 app = FastAPI(
     title="KVern - LLM KV Cache Manager",
@@ -24,27 +33,67 @@ app = FastAPI(
     version="0.1.0"
 )
 
+# Add middleware
+app.add_middleware(RequestTrackingMiddleware)
+app.add_middleware(CORSMiddleware)
+
 # Global components (initialized on startup)
-# tokenizer_pipeline: TokenizerPipeline = None  # TODO: implement
+tokenizer_pipeline: TokenizerPipeline = None
 trie_manager: KVPrefixManager = None
 analytics_store: AnalyticsStore = None
 backend_client: httpx.AsyncClient = None
 config: Dict[str, Any] = None
+logger = logging.getLogger(__name__)
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize components on startup."""
-    global trie_manager, analytics_store, backend_client, config
+    global tokenizer_pipeline, trie_manager, analytics_store, backend_client, config
     
     # Load config
-    with open("config.yaml", "r") as f:
-        config = yaml.safe_load(f)
+    try:
+        with open("config.yaml", "r") as f:
+            config = yaml.safe_load(f)
+    except Exception as e:
+        logger.error(f"Failed to load config.yaml: {e}")
+        raise
+    
+    # Validate required config sections
+    required_sections = ["tokenizer", "trie", "analytics", "backend", "proxy", "eviction"]
+    for section in required_sections:
+        if section not in config:
+            raise ValueError(f"Missing required config section: {section}")
+    
+    # Initialize eviction policy
+    eviction_policy = None
+    policy_name = config["eviction"]["policy"]
+    if policy_name == "lru":
+        eviction_policy = LRUEvictionPolicy()
+    elif policy_name == "cost_aware":
+        eviction_policy = CostAwareEvictionPolicy(
+            cost_per_token=config["eviction"]["cost_per_token"]
+        )
+    elif policy_name == "lfu_decay":
+        eviction_policy = LFUDecayEvictionPolicy(
+            decay_rate=config["eviction"]["decay_rate"]
+        )
+    else:
+        logger.warning(f"Unknown eviction policy '{policy_name}', using LRU")
+        eviction_policy = LRUEvictionPolicy()
     
     # Initialize components
-    # tokenizer_pipeline = TokenizerPipeline(config["tokenizer"]["model_map"])  # TODO: implement
-    trie_manager = KVPrefixManager(max_nodes=config["trie"]["max_nodes_per_model"])
+    normalizer = Normalizer()
+    tokenizer_pipeline = TokenizerPipeline(
+        model_map=config["tokenizer"]["model_map"],
+        normalizer=normalizer
+    )
+    trie_manager = KVPrefixManager(
+        max_nodes_per_model=config["trie"]["max_nodes_per_model"],
+        eviction_policy=eviction_policy
+    )
     analytics_store = AnalyticsStore(config["analytics"]["db_path"])
+    await analytics_store.initialize()
     
     # Backend HTTP client
     backend_client = httpx.AsyncClient(
@@ -52,8 +101,10 @@ async def startup_event():
         timeout=config["backend"]["timeout_seconds"]
     )
     
-    print(f"KVern proxy started on {config['proxy']['host']}:{config['proxy']['port']}")
-    print(f"Backend: {config['backend']['url']}")
+    logger.info(f"KVern proxy started on {config['proxy']['host']}:{config['proxy']['port']}")
+    logger.info(f"Backend: {config['backend']['url']}")
+    logger.info(f"Eviction policy: {policy_name}")
+    logger.info(f"Loaded models: {list(config['tokenizer']['model_map'].keys())}")
 
 
 @app.on_event("shutdown") 
@@ -87,26 +138,40 @@ async def chat_completions(request: Request):
     # Async trie operations (don't block critical path)
     async def record_trie_analytics():
         try:
-            # TODO: Tokenize prompt when TokenizerPipeline is implemented
-            # token_ids = await tokenizer_pipeline.tokenize(model, messages)
+            # Tokenize using real TokenizerPipeline
+            token_ids = tokenizer_pipeline.tokenize(model, messages)
             
-            # Mock tokenization for now - just use message length as rough estimate
-            mock_token_ids = list(range(len(str(messages))))  # Simple mock
+            if token_ids is None:
+                # Tokenization failed (unknown model, etc.) - skip trie recording
+                logger.warning(f"Skipping trie recording for unknown model: {model}")
+                return
             
-            # Trie lookup and insert  
-            match_depth = trie_manager.find_longest_common_prefix(mock_token_ids)
-            trie_manager.insert(mock_token_ids)
+            # Only process if we meet minimum prefix length requirement
+            min_prefix_tokens = config["trie"].get("min_prefix_tokens", 32)
+            if len(token_ids) < min_prefix_tokens:
+                logger.debug(f"Skipping trie recording - prompt too short: {len(token_ids)} < {min_prefix_tokens}")
+                return
             
-            # Record event
+            # Trie lookup and insert
+            match_depth, is_hit = trie_manager.lookup(model, token_ids)
+            await trie_manager.insert(model, token_ids)
+            
+            # Record event in analytics
             await analytics_store.record_event(
                 request_id=request_id,
-                model=model, 
-                prompt_tokens=len(mock_token_ids),
-                shared_prefix_tokens=match_depth,
-                is_hit=match_depth > 0
+                model=model,
+                prompt_tokens=len(token_ids),
+                shared_prefix_tokens=match_depth if is_hit else None,
+                is_hit=is_hit
             )
+            
+            logger.debug(
+                f"Recorded trie event: model={model}, tokens={len(token_ids)}, "
+                f"match_depth={match_depth}, is_hit={is_hit}"
+            )
+            
         except Exception as e:
-            print(f"Trie analytics error (non-blocking): {e}")
+            logger.error(f"Trie analytics error (non-blocking): {e}")
     
     # Start analytics task (non-blocking)
     asyncio.create_task(record_trie_analytics())
@@ -157,28 +222,58 @@ async def health():
 async def metrics():
     """Expose basic trie metrics."""
     try:
-        # TODO: implement get_stats method on KVPrefixManager
-        trie_stats = {"node_count": trie_manager.current_node_count, "max_nodes": trie_manager.max_nodes}
+        # Get trie statistics per model
+        trie_stats = {
+            "total_models": len(trie_manager._roots),
+            "models": {}
+        }
+        
+        for model_name, root_node in trie_manager._roots.items():
+            trie_stats["models"][model_name] = {
+                "node_count": node_count(root_node),
+                "hot_prefixes": len(hot_prefixes(root_node, n=10, min_prefix_tokens=32))
+            }
+        
+        # Get analytics statistics
         analytics_stats = await analytics_store.get_summary_stats()
+        
+        # Get loaded tokenizer models
+        loaded_models = tokenizer_pipeline.loaded_models() if tokenizer_pipeline else []
         
         return {
             "trie": trie_stats,
-            "analytics": analytics_stats
+            "analytics": analytics_stats,
+            "tokenizer": {
+                "loaded_models": loaded_models,
+                "configured_models": list(config["tokenizer"]["model_map"].keys())
+            },
+            "version": "0.1.0"
         }
     except Exception as e:
+        logger.error(f"Error generating metrics: {e}")
         raise HTTPException(status_code=500, detail=f"Metrics error: {str(e)}")
 
 
 if __name__ == "__main__":
     import uvicorn
     
-    # Load config for host/port
-    with open("config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-    
-    uvicorn.run(
-        "main:app",
-        host=config["proxy"]["host"],
-        port=config["proxy"]["port"],
-        reload=True
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
+    
+    # Load config for host/port
+    try:
+        with open("config.yaml", "r") as f:
+            config = yaml.safe_load(f)
+        
+        uvicorn.run(
+            "main:app",
+            host=config["proxy"]["host"],
+            port=config["proxy"]["port"],
+            reload=True
+        )
+    except Exception as e:
+        print(f"Failed to start server: {e}")
+        exit(1)

@@ -134,7 +134,7 @@ class AnalyticsStore:
             
             # Flush if batch is full or enough time has passed
             if (len(self._batch_events) >= self._batch_size or 
-                time.time() - self._last_flush > 60):  # 1 minute max delay
+                time.time() - self._last_flush > 10):  # Reduce to 10 seconds for better responsiveness
                 await self._flush_events()
     
     async def update_latency(self, request_id: str, backend_latency_ms: float) -> None:
@@ -237,7 +237,17 @@ class AnalyticsStore:
                 WHERE ts > ?
             """, (cutoff_time,))
             row = await cursor.fetchone()
-            total_requests, hits, avg_latency = row
+            
+            # Handle case where query returns no rows
+            if row is None:
+                total_requests, hits, avg_latency = 0, 0, None
+            else:
+                total_requests, hits, avg_latency = row
+            
+            # Handle None values from SQL aggregations
+            total_requests = total_requests or 0
+            hits = hits or 0
+            avg_latency = avg_latency  # Keep None for avg_latency as it's meaningful
             
             hit_rate = (hits / total_requests) if total_requests > 0 else 0
             
@@ -250,7 +260,16 @@ class AnalyticsStore:
                 WHERE ts > ?
             """, (cutoff_time,))
             row = await cursor.fetchone()
-            total_prompt_tokens, total_shared_tokens = row
+            
+            # Handle case where query returns no rows
+            if row is None:
+                total_prompt_tokens, total_shared_tokens = 0, 0
+            else:
+                total_prompt_tokens, total_shared_tokens = row
+            
+            # Handle None values from SQL aggregations  
+            total_prompt_tokens = total_prompt_tokens or 0
+            total_shared_tokens = total_shared_tokens or 0
             
             token_reuse_ratio = (
                 (total_shared_tokens / total_prompt_tokens) 
@@ -268,7 +287,7 @@ class AnalyticsStore:
                 GROUP BY model
             """, (cutoff_time,))
             model_stats = {
-                row[0]: {"requests": row[1], "hits": row[2]} 
+                row[0]: {"requests": row[1], "hits": row[2] or 0} 
                 for row in await cursor.fetchall()
             }
         

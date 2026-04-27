@@ -39,7 +39,7 @@ class BackendClient:
         """Async context manager entry."""
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
-            timeout=http.Timeout(self.timeout),
+            timeout=httpx.Timeout(self.timeout),
             limits=httpx.Limits(max_connections=20)
         )
         return self
